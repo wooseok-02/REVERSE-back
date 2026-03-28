@@ -18,6 +18,7 @@ main
 | `release` | 스프린트 요구사항 검증 및 버그 픽스. merge 시 버전 태깅 |
 | `develop` | feature PR을 통합하는 브랜치. 스프린트 요구사항이 모두 올라오면 release에 PR |
 | `feature/기능명` | 기능 단위 개발 브랜치. 작업 완료 후 develop에 PR |
+| `hotfix/기능명` | main 브랜치에 에러 발생시 수정하는 브랜치. 참여인원 전원 리뷰해야 하며, main,develop 브랜치에 PR |
 
 ## 개발 흐름
 
