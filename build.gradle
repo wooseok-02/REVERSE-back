@@ -22,8 +22,20 @@ dependencies {
 	implementation 'org.springframework.boot:spring-boot-starter-web'
 	testImplementation 'org.springframework.boot:spring-boot-starter-test'
 	testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
-}
 
-tasks.named('test') {
-	useJUnitPlatform()
+	// AWS S3 SDK (Cloudflare R2 호환)
+	implementation 'software.amazon.awssdk:s3:2.25.6'
+
+	// .env 파일 읽기
+	implementation 'me.paulschwarz:spring-dotenv:4.0.0'
+
+	// JPA
+	implementation 'org.springframework.boot:spring-boot-starter-data-jpa'
+
+	// MariaDB 드라이버
+	runtimeOnly 'org.mariadb.jdbc:mariadb-java-client'
+
+	// Lombok (getter/setter 자동 생성)
+	compileOnly 'org.projectlombok:lombok'
+	annotationProcessor 'org.projectlombok:lombok'
 }
