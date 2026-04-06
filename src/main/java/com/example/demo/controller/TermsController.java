@@ -9,7 +9,7 @@ import java.util.List;
 
 @CrossOrigin(origins = "*")
 @RestController
-@RequestMapping("/api/terms") // 이 주소로 들어오는 요청을 처리하겠다는 뜻!
+@RequestMapping("/api/terms")
 public class TermsController {
 
     @Autowired
@@ -21,31 +21,40 @@ public class TermsController {
         return termsRepository.findAll();
     }
 
-    // 2. 새 약관 저장하기
+    // 2. 특정 약관 상세 보기 (추가해두면 좋아요)
+    @GetMapping("/{id}")
+    public Terms getTermsById(@PathVariable Integer id) {
+        return termsRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("해당 약관을 찾을 수 없습니다. id: " + id));
+    }
+
+    // 3. 새 약관 저장하기
     @PostMapping
     public Terms createTerms(@RequestBody Terms terms) {
         return termsRepository.save(terms);
     }
 
+    // 4. 약관 수정 (Update)
     @PutMapping("/{id}")
-    public Terms updateTerms(@PathVariable Long id, @RequestBody Terms termsDetails) {
+    public Terms updateTerms(@PathVariable Integer id, @RequestBody Terms termsDetails) {
+        // Repository의 PK 타입이 Integer이므로 매개변수 타입을 Integer로 변경
         Terms terms = termsRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("해당 약관을 찾을 수 없습니다. id: " + id));
 
-        // 수정하고 싶은 필드들을 업데이트
+        // 리더님이 추가한 필드들까지 포함해서 업데이트
         terms.setTitle(termsDetails.getTitle());
         terms.setContents(termsDetails.getContents());
         terms.setIsCurrent(termsDetails.getIsCurrent());
         terms.setSortOrder(termsDetails.getSortOrder());
-        // version도 필요하다면 업데이트
         terms.setVersion(termsDetails.getVersion());
+        terms.setUpdatedBy(termsDetails.getUpdatedBy()); // 리더님이 추가한 필드
 
         return termsRepository.save(terms);
     }
 
-    // 2. 삭제 (Delete)
+    // 5. 삭제 (Delete)
     @DeleteMapping("/{id}")
-    public String deleteTerms(@PathVariable Long id) {
+    public String deleteTerms(@PathVariable Integer id) {
         Terms terms = termsRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("해당 약관을 찾을 수 없습니다. id: " + id));
 
