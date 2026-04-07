@@ -1,7 +1,7 @@
 package com.reverse.nsu.controller;
 
-import com.example.demo.entity.Terms;
-import com.example.demo.repository.TermsRepository;
+import com.reverse.nsu.entity.Terms;
+import com.reverse.nsu.repository.TermsRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 
