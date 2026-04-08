@@ -7,7 +7,6 @@ import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 
-@CrossOrigin(origins = "*")
 @RestController
 @RequestMapping("/api/terms") // 이 주소로 들어오는 요청을 처리하겠다는 뜻!
 public class TermsController {
