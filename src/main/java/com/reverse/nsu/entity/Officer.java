@@ -66,4 +66,17 @@ public class Officer {
         entity.updatedBy = dto.getUpdatedBy();
         return entity;
     }
+
+    // 기존 엔티티 필드 업데이트
+    public void update(OfficerRequestDto dto) {
+        this.name = dto.getName();
+        this.generation = dto.getGeneration();
+        this.role = dto.getRole();
+        this.department = dto.getDepartment();
+        this.email = dto.getEmail();
+        this.photoUrl = dto.getPhotoUrl();
+        if (dto.getSortOrder() != null) this.sortOrder = dto.getSortOrder();
+        if (dto.getIsVisible() != null) this.isVisible = dto.getIsVisible();
+        this.updatedBy = dto.getUpdatedBy();
+    }
 }
