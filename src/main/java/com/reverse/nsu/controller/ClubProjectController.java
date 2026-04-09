@@ -40,6 +40,23 @@ public class ClubProjectController {
         return ResponseEntity.ok(clubProjectService.save(dto));
     }
 
+    // 1단계: 수정용 이미지 업로드 → URL 반환 (이미지 변경 시에만 사용)
+    @PutMapping("/{id}/image")
+    public ResponseEntity<String> updateImage(
+            @RequestParam("file") MultipartFile file
+    ) throws IOException {
+        return ResponseEntity.ok(clubProjectService.uploadThumbnailImage(file));
+    }
+
+    // 2단계: 데이터 수정 (thumbnailUrl 포함한 전체 데이터)
+    @PutMapping("/{id}")
+    public ResponseEntity<ClubProject> update(
+            @PathVariable Long id,
+            @RequestBody ClubProjectRequestDto dto
+    ) {
+        return ResponseEntity.ok(clubProjectService.update(id, dto));
+    }
+
     // DB + R2 이미지 삭제
     @DeleteMapping("/{id}")
     public ResponseEntity<String> delete(@PathVariable Long id) {

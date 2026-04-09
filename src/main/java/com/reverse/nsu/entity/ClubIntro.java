@@ -50,4 +50,13 @@ public class ClubIntro {
         entity.updatedBy = dto.getUpdatedBy();
         return entity;
     }
+
+    // 기존 엔티티 필드 업데이트
+    public void update(ClubIntroRequestDto dto) {
+        this.title = dto.getTitle();
+        this.subTitle = dto.getSubTitle();
+        this.bannerUrl = dto.getBannerUrl();
+        if (dto.getIsActive() != null) this.isActive = dto.getIsActive();
+        this.updatedBy = dto.getUpdatedBy();
+    }
 }

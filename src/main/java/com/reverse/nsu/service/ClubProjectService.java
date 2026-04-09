@@ -41,4 +41,17 @@ public class ClubProjectService {
         }
         clubProjectRepository.deleteById(id);
     }
+
+    // 데이터 수정 (이미지 변경 시 기존 R2 이미지 삭제)
+    public ClubProject update(Long id, ClubProjectRequestDto dto) {
+        ClubProject entity = clubProjectRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("ClubProject not found: " + id));
+        String oldThumbnailUrl = entity.getThumbnailUrl();
+        String newThumbnailUrl = dto.getThumbnailUrl();
+        if (oldThumbnailUrl != null && !oldThumbnailUrl.equals(newThumbnailUrl)) {
+            r2Service.delete(oldThumbnailUrl);
+        }
+        entity.update(dto);
+        return clubProjectRepository.save(entity);
+    }
 }
