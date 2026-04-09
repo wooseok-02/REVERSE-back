@@ -40,7 +40,24 @@ public class OfficerController {
         return ResponseEntity.ok(officerService.save(dto));
     }
 
-     // DB + R2 이미지 삭제
+    // 1단계: 수정용 이미지 업로드 → URL 반환 (이미지 변경 시에만 사용)
+    @PutMapping("/{id}/image")
+    public ResponseEntity<String> updateImage(
+            @RequestParam("file") MultipartFile file
+    ) throws IOException {
+        return ResponseEntity.ok(officerService.uploadPhotoImage(file));
+    }
+
+    // 2단계: 데이터 수정 (photoUrl 포함한 전체 데이터)
+    @PutMapping("/{id}")
+    public ResponseEntity<Officer> update(
+            @PathVariable Long id,
+            @RequestBody OfficerRequestDto dto
+    ) {
+        return ResponseEntity.ok(officerService.update(id, dto));
+    }
+
+    // DB + R2 이미지 삭제
     @DeleteMapping("/{id}")
     public ResponseEntity<String> delete(@PathVariable Long id) {
         officerService.delete(id);

@@ -50,4 +50,13 @@ public class ClubProject {
         entity.updatedBy = dto.getUpdatedBy();
         return entity;
     }
+
+    // 기존 엔티티 필드 업데이트
+    public void update(ClubProjectRequestDto dto) {
+        this.projectName = dto.getProjectName();
+        this.thumbnailUrl = dto.getThumbnailUrl();
+        this.projectUrl = dto.getProjectUrl();
+        if (dto.getSortOrder() != null) this.sortOrder = dto.getSortOrder();
+        this.updatedBy = dto.getUpdatedBy();
+    }
 }

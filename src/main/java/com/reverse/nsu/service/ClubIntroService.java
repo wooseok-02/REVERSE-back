@@ -32,7 +32,7 @@ public class ClubIntroService {
         return clubIntroRepository.save(ClubIntro.from(dto));
     }
 
-        // DB 삭제 + R2 이미지 삭제
+    // DB 삭제 + R2 이미지 삭제
     public void delete(Long id) {
         ClubIntro entity = clubIntroRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("ClubIntro not found: " + id));
@@ -40,5 +40,18 @@ public class ClubIntroService {
             r2Service.delete(entity.getBannerUrl());
         }
         clubIntroRepository.deleteById(id);
+    }
+
+    // 데이터 수정 (이미지 변경 시 기존 R2 이미지 삭제)
+    public ClubIntro update(Long id, ClubIntroRequestDto dto) {
+        ClubIntro entity = clubIntroRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("ClubIntro not found: " + id));
+        String oldBannerUrl = entity.getBannerUrl();
+        String newBannerUrl = dto.getBannerUrl();
+        if (oldBannerUrl != null && !oldBannerUrl.equals(newBannerUrl)) {
+            r2Service.delete(oldBannerUrl);
+        }
+        entity.update(dto);
+        return clubIntroRepository.save(entity);
     }
 }

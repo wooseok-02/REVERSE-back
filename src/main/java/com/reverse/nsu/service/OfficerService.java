@@ -41,4 +41,17 @@ public class OfficerService {
         }
         officerRepository.deleteById(id);
     }
+
+    // 데이터 수정 (이미지 변경 시 기존 R2 이미지 삭제)
+    public Officer update(Long id, OfficerRequestDto dto) {
+        Officer entity = officerRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Officer not found: " + id));
+        String oldPhotoUrl = entity.getPhotoUrl();
+        String newPhotoUrl = dto.getPhotoUrl();
+        if (oldPhotoUrl != null && !oldPhotoUrl.equals(newPhotoUrl)) {
+            r2Service.delete(oldPhotoUrl);
+        }
+        entity.update(dto);
+        return officerRepository.save(entity);
+    }
 }
