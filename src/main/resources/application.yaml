@@ -38,3 +38,9 @@ cloud:
     secret-key: ${R2_SECRET_KEY}
     bucket-name: ${R2_BUCKET_NAME}
     public-url: ${R2_PUBLIC_URL}
+
+jwt:
+  secret: ${JWT_SECRET}
+  salt: ${JWT_SALT}
+  access-expiry-minutes: 5
+  refresh-expiry-minutes: 20
