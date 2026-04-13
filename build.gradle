@@ -29,15 +29,12 @@ dependencies {
 	testAnnotationProcessor 'org.projectlombok:lombok'
 	implementation 'software.amazon.awssdk:s3:2.20.0'
 	implementation 'io.github.cdimascio:dotenv-java:3.0.0'
-<<<<<<< HEAD
 	implementation 'org.springframework.boot:spring-boot-starter-mail'
 	implementation 'org.springframework.boot:spring-boot-starter-validation'
-=======
 	implementation 'io.jsonwebtoken:jjwt-api:0.12.6'
 	runtimeOnly 'io.jsonwebtoken:jjwt-impl:0.12.6'
 	runtimeOnly 'io.jsonwebtoken:jjwt-jackson:0.12.6'
 	implementation 'org.springframework.security:spring-security-crypto'
->>>>>>> 4d312dd5a9789eaefeb3a89b38ccdbb0ee4c1fea
 }
 
 tasks.named('test') {

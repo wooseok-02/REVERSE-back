@@ -3,7 +3,7 @@
 - **Base URL**: `http://localhost:8080`
 - **응답 형식**: JSON (이미지 업로드 응답은 plain text)
 - **작성일**: 2026.04.09
-- **최종 수정일**: 2026.04.13
+- **최종 수정일**: 2026.04.13 (모집 공고 섹션 추가)
 
 ---
 
@@ -16,6 +16,7 @@
 5. [임원진 소개 (Officer)](#5-임원진-소개-officer)
 6. [약관 (Terms)](#6-약관-terms)
 7. [R2 스토리지 테스트 (R2)](#7-r2-스토리지-테스트-r2)
+8. [모집 공고 (Recruitment)](#8-모집-공고-recruitment)
 
 ---
 
@@ -832,6 +833,237 @@ R2에 저장된 파일을 URL로 삭제한다.
 **응답 `200 OK`** (plain text)
 ```
 삭제 완료: https://cdn.example.com/test/uuid-filename.png
+```
+
+---
+
+## 8. 모집 공고 (Recruitment)
+
+Base Path: `/api/recruit`
+
+---
+
+### GET /api/recruit
+모집 공고 전체 목록을 조회한다.
+
+**응답 `200 OK`**
+```json
+[
+  {
+    "id": 1,
+    "title": "2026년 1학기 신입 부원 모집",
+    "description": "REVERSE 동아리 신입 부원을 모집합니다.",
+    "isActive": true,
+    "createdAt": "2026-04-01T12:00:00",
+    "updatedAt": "2026-04-01T12:00:00"
+  }
+]
+```
+
+---
+
+### GET /api/recruit/{id}
+모집 공고 단건을 상세 조회한다.
+
+**Path Variable**
+
+| 파라미터 | 타입 | 설명 |
+|---|---|---|
+| `id` | Integer | 조회할 공고 ID |
+
+**응답 `200 OK`**
+```json
+{
+  "id": 1,
+  "title": "2026년 1학기 신입 부원 모집",
+  "description": "REVERSE 동아리 신입 부원을 모집합니다.",
+  "isActive": true,
+  "createdAt": "2026-04-01T12:00:00",
+  "updatedAt": "2026-04-01T12:00:00"
+}
+```
+
+---
+
+### POST /api/recruit
+모집 공고를 등록한다. 등록 시 `isActive`는 항상 `true`로 저장된다.
+
+**요청 Body** `application/json`
+
+| 필드 | 타입 | 필수 | 설명 |
+|---|---|---|---|
+| `title` | String | Y | 공고 제목 (최대 100자) |
+| `description` | String | N | 공고 본문 |
+| `applyStartDate` | LocalDateTime | Y | 지원 시작일시 |
+| `applyEndDate` | LocalDateTime | Y | 지원 마감일시 |
+| `updatedBy` | String | Y | 등록 관리자 ID (최대 15자) |
+
+```json
+{
+  "title": "2026년 1학기 신입 부원 모집",
+  "description": "REVERSE 동아리 신입 부원을 모집합니다.",
+  "applyStartDate": "2026-04-01T00:00:00",
+  "applyEndDate": "2026-04-30T23:59:59",
+  "updatedBy": "admin01"
+}
+```
+
+**응답 `200 OK`**
+```json
+{
+  "id": 1,
+  "title": "2026년 1학기 신입 부원 모집",
+  "description": "REVERSE 동아리 신입 부원을 모집합니다.",
+  "isActive": true,
+  "createdAt": "2026-04-01T12:00:00",
+  "updatedAt": "2026-04-01T12:00:00"
+}
+```
+
+---
+
+### PUT /api/recruit/{id}
+모집 공고 내용을 수정한다.
+
+**Path Variable**
+
+| 파라미터 | 타입 | 설명 |
+|---|---|---|
+| `id` | Integer | 수정할 공고 ID |
+
+**요청 Body** `application/json`
+
+| 필드 | 타입 | 필수 | 설명 |
+|---|---|---|---|
+| `title` | String | Y | 공고 제목 |
+| `description` | String | N | 공고 본문 |
+| `applyStartDate` | LocalDateTime | Y | 지원 시작일시 |
+| `applyEndDate` | LocalDateTime | Y | 지원 마감일시 |
+| `updatedBy` | String | Y | 수정 관리자 ID |
+
+**응답 `200 OK`**
+```json
+{
+  "id": 1,
+  "title": "2026년 1학기 신입 부원 모집 (수정)",
+  "description": "REVERSE 동아리 신입 부원을 모집합니다.",
+  "isActive": true,
+  "createdAt": "2026-04-01T12:00:00",
+  "updatedAt": "2026-04-13T12:00:00"
+}
+```
+
+---
+
+### DELETE /api/recruit/{id}
+모집 공고를 삭제한다.
+
+**Path Variable**
+
+| 파라미터 | 타입 | 설명 |
+|---|---|---|
+| `id` | Integer | 삭제할 공고 ID |
+
+**응답 `200 OK`** (plain text)
+```
+성공적으로 삭제되었습니다. ID: 1
+```
+
+---
+
+### PATCH /api/recruit/admin/{id}/status
+모집 공고의 활성화 상태(`isActive`)를 변경한다. 관리자 권한이 필요하다.
+
+**Path Variable**
+
+| 파라미터 | 타입 | 설명 |
+|---|---|---|
+| `id` | Integer | 상태를 변경할 공고 ID |
+
+**Query Parameter**
+
+| 파라미터 | 타입 | 필수 | 설명 |
+|---|---|---|---|
+| `roleId` | Integer | Y | 요청자의 역할 ID (권한 검증에 사용) |
+
+**요청 Body** `application/json`
+
+| 필드 | 타입 | 필수 | 설명 |
+|---|---|---|---|
+| `isActive` | Boolean | Y | 변경할 활성화 상태 |
+
+```json
+{
+  "isActive": false
+}
+```
+
+**응답 `200 OK`**
+```json
+{
+  "status": "success",
+  "message": "모집 상태가 변경되었습니다.",
+  "data": {
+    "id": 1,
+    "isActive": false
+  }
+}
+```
+
+---
+
+### POST /api/recruit/apply
+모집 공고에 지원서를 제출한다.
+
+**요청 Body** `application/json`
+
+| 필드 | 타입 | 필수 | 설명 |
+|---|---|---|---|
+| `recruitmentId` | Integer | Y | 지원할 공고 ID |
+| `applicantName` | String | Y | 지원자 이름 |
+| `department` | String | Y | 학과 |
+| `studentNumber` | String | Y | 학번 |
+| `phoneNumber` | String | Y | 전화번호 |
+| `grade` | Byte | Y | 학년 |
+| `email` | String | Y | 이메일 |
+| `interviewMemo` | String | N | 면접 관련 메모 |
+| `termsAgreed` | Boolean | Y | 약관 동의 여부 |
+| `applyFields` | List\<String\> | Y | 지원 분야 목록 (예: `["메인프로젝트", "스터디"]`) |
+
+```json
+{
+  "recruitmentId": 1,
+  "applicantName": "홍길동",
+  "department": "컴퓨터소프트웨어학과",
+  "studentNumber": "20210001",
+  "phoneNumber": "010-1234-5678",
+  "grade": 3,
+  "email": "hong@example.com",
+  "interviewMemo": "오후 2시 이후 가능",
+  "termsAgreed": true,
+  "applyFields": ["메인프로젝트", "스터디"]
+}
+```
+
+**응답 `200 OK`** (plain text)
+```
+지원서가 성공적으로 제출되었습니다.
+```
+
+---
+
+### POST /api/recruit/notify
+새 모집 공고 알림 이메일을 구독한다.
+
+**Query Parameter**
+
+| 파라미터 | 타입 | 필수 | 설명 |
+|---|---|---|---|
+| `email` | String | Y | 알림을 받을 이메일 주소 |
+
+**응답 `200 OK`** (plain text)
+```
+공고 알림 구독이 완료되었습니다.
 ```
 
 ---
