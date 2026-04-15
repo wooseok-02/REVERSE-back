@@ -44,3 +44,6 @@ jwt:
   salt: ${JWT_SALT}
   access-expiry-minutes: 5
   refresh-expiry-minutes: 20
+
+public-data:
+  api-key: ${PUBLIC_DATA_API_KEY}

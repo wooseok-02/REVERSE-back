@@ -31,7 +31,6 @@ public class RecruitmentApplyService {
         app.setPhoneNumber(dto.getPhoneNumber());
         app.setGrade(dto.getGrade());
         app.setEmail(dto.getEmail());
-        app.setInterviewMemo(dto.getInterviewMemo());
         app.setTermsAgreed(dto.getTermsAgreed());
         app.setStatus("PENDING");
 
