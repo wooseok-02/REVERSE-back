@@ -6,14 +6,14 @@ import lombok.Setter;
 import java.time.LocalDateTime;
 
 @Entity
-@Table(name = "terms")
+@Table(name = "TERMS")
 @Getter @Setter
 public class Terms {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "termsId")
-    private Long termsId;
+    private Integer termsId;
 
     @Column(name = "sortOrder")
     private Integer sortOrder;
