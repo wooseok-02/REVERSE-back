@@ -1,17 +1,20 @@
 package com.reverse.nsu.dto;
 
-import lombok.*;
-import java.util.List;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
 
-@Getter @Setter
+@Getter
+@Setter
+@NoArgsConstructor
 public class ApplicationRequestDto {
     private Integer recruitmentId;
-    private String applicantName;
-    private String department;
+    private String userName;      // 엔티티의 userName과 매칭
+    private String userMajor;     // 엔티티의 department(userMajor)와 매칭
     private String studentNumber;
-    private String phoneNumber;
+    private String userPhone;     // 엔티티의 phoneNumber(userPhone)와 매칭
     private Byte grade;
-    private String email;
+    private String userEmail;     // 엔티티의 email(userEmail)과 매칭
+    private String portfolioUrl;
     private Boolean termsAgreed;
-    private List<String> applyFields; // ["메인프로젝트", "스터디"] 형태로 전송
 }

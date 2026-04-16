@@ -5,8 +5,10 @@ import lombok.Setter;
 
 import java.time.LocalDate;
 import java.time.LocalTime;
+import lombok.*;
 
 @Getter @Setter
+@AllArgsConstructor @NoArgsConstructor
 public class ScheduleRequestDto {
     private Integer categoryId;
     private String title;

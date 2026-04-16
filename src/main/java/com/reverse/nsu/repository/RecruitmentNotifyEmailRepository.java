@@ -10,3 +10,4 @@ public interface RecruitmentNotifyEmailRepository extends JpaRepository<Recruitm
   //이메일 중복 체크
     Optional<RecruitmentNotifyEmail> findByEmail(String email);
 }
+

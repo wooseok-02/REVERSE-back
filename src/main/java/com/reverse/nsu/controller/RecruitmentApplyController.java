@@ -1,29 +1,27 @@
 package com.reverse.nsu.controller;
 
 import com.reverse.nsu.dto.ApplicationRequestDto;
-import com.reverse.nsu.service.RecruitmentApplyService;
+import com.reverse.nsu.service.RecruitmentService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import java.util.Map;
 
 @RestController
-@RequestMapping("/api/recruit")
+@RequestMapping("/api/recruit/apply")
 @RequiredArgsConstructor
 @CrossOrigin(originPatterns = "*", allowCredentials = "true")
 public class RecruitmentApplyController {
-    private final RecruitmentApplyService applyService;
 
-    // 지원서 제출 API
-    @PostMapping("/apply")
-    public ResponseEntity<String> apply(@RequestBody ApplicationRequestDto dto) {
-        applyService.submitApplication(dto);
-        return ResponseEntity.ok("지원서가 성공적으로 제출되었습니다.");
-    }
+    private final RecruitmentService recruitmentService;
 
-    // 이메일 알림 구독 API
-    @PostMapping("/notify")
-    public ResponseEntity<String> subscribe(@RequestParam String email) {
-        applyService.subscribeNotification(email);
-        return ResponseEntity.ok("공고 알림 구독이 완료되었습니다.");
+    // 지원서 제출 (userName, userMajor 등 필드 사용)
+    @PostMapping
+    public ResponseEntity<?> submit(@RequestBody ApplicationRequestDto dto) {
+        recruitmentService.submitApplication(dto);
+        return ResponseEntity.ok(Map.of(
+                "status", "success",
+                "message", "지원서가 정상적으로 접수되었습니다. 행운을 빕니다!"
+        ));
     }
 }

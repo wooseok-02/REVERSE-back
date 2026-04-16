@@ -1,21 +1,20 @@
 package com.reverse.nsu.entity;
 
-import lombok.*; // Lombok의 모든 기능을 사용하기 위해 추가
+import lombok.*;
 import jakarta.persistence.*;
 import java.time.LocalDateTime;
+import com.fasterxml.jackson.annotation.JsonFormat;
 
 @Entity
-@Table(name = "RECRUITMENT")
-@Getter // Lombok이 자동으로 getter 생성
-@Setter // Lombok이 자동으로 setter 생성
-@NoArgsConstructor
-@AllArgsConstructor
+@Getter @Setter
+@NoArgsConstructor @AllArgsConstructor
 @Builder
-public class Recruitment extends BaseTimeEntity {
+@Table(name = "RECRUITMENT")
+public class Recruitment {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    @Column(name = "recruitmentId") // DB 컬럼명 매핑
+    @Column(name = "recruitmentId")
     private Integer id;
 
     @Column(name = "title", length = 100, nullable = false)
@@ -25,20 +24,24 @@ public class Recruitment extends BaseTimeEntity {
     private String description;
 
     @Column(name = "applyStartDate", nullable = false)
+    @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "yyyy-MM-dd")
     private LocalDateTime applyStartDate;
 
     @Column(name = "applyEndDate", nullable = false)
+    @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "yyyy-MM-dd")
     private LocalDateTime applyEndDate;
 
-    @Column(name = "isActive", nullable = false)
-    private Boolean isActive;
+    // 아까 해결했던 방식 그대로!
+    @Column(name = "isActive", columnDefinition = "TINYINT(1)", nullable = false)
+    @Builder.Default
+    private Boolean isActive = true;
 
     @Column(name = "updatedBy", length = 15, nullable = false)
     private String updatedBy;
 
-    // 비즈니스 로직은 기존대로 유지
-    public void update(String title, String description) {
-        this.title = title;
-        this.description = description;
-    }
+    @Column(name = "createdDate", nullable = false, updatable = false)
+    private LocalDateTime createdDate;
+
+    @Column(name = "modifiedDate", nullable = false)
+    private LocalDateTime modifiedDate;
 }
