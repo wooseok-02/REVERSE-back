@@ -12,7 +12,6 @@ public class ApplicationRequestDto {
     private String phoneNumber;
     private Byte grade;
     private String email;
-    private String interviewMemo;
     private Boolean termsAgreed;
     private List<String> applyFields; // ["메인프로젝트", "스터디"] 형태로 전송
 }

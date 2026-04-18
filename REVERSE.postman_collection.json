@@ -1,0 +1,770 @@
+{
+  "info": {
+    "name": "REVERSE API",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "baseURL",
+      "value": "https://api.nsu-reverse.site",
+      "type": "string"
+    }
+  ],
+  "item": [
+    {
+      "name": "1. 서버 상태",
+      "item": [
+        {
+          "name": "GET /test",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseURL}}/test",
+              "host": ["{{baseURL}}"],
+              "path": ["test"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "2. 인증 (Auth)",
+      "item": [
+        {
+          "name": "POST /api/auth/login",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": {
+              "raw": "{{baseURL}}/api/auth/login",
+              "host": ["{{baseURL}}"],
+              "path": ["api", "auth", "login"]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"userId\": \"admin01\",\n  \"userPassword\": \"plainPassword\"\n}",
+              "options": { "raw": { "language": "json" } }
+            }
+          }
+        },
+        {
+          "name": "POST /api/auth/refresh",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": {
+              "raw": "{{baseURL}}/api/auth/refresh",
+              "host": ["{{baseURL}}"],
+              "path": ["api", "auth", "refresh"]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"refreshToken\": \"eyJhbGciOiJIUzI1NiJ9...\"\n}",
+              "options": { "raw": { "language": "json" } }
+            }
+          }
+        },
+        {
+          "name": "POST /api/auth/logout",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": {
+              "raw": "{{baseURL}}/api/auth/logout",
+              "host": ["{{baseURL}}"],
+              "path": ["api", "auth", "logout"]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"refreshToken\": \"eyJhbGciOiJIUzI1NiJ9...\"\n}",
+              "options": { "raw": { "language": "json" } }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "3. 동아리 소개 (Club Intro)",
+      "item": [
+        {
+          "name": "GET /api/club-intro",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseURL}}/api/club-intro",
+              "host": ["{{baseURL}}"],
+              "path": ["api", "club-intro"]
+            }
+          }
+        },
+        {
+          "name": "POST /api/club-intro/image",
+          "request": {
+            "method": "POST",
+            "url": {
+              "raw": "{{baseURL}}/api/club-intro/image",
+              "host": ["{{baseURL}}"],
+              "path": ["api", "club-intro", "image"]
+            },
+            "body": {
+              "mode": "formdata",
+              "formdata": [{ "key": "file", "type": "file", "src": "" }]
+            }
+          }
+        },
+        {
+          "name": "POST /api/club-intro",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": {
+              "raw": "{{baseURL}}/api/club-intro",
+              "host": ["{{baseURL}}"],
+              "path": ["api", "club-intro"]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"REVERSE\",\n  \"subTitle\": \"남서울대학교 컴퓨터소프트웨어학과 동아리\",\n  \"bannerUrl\": \"https://cdn.example.com/intro/uuid-filename.png\",\n  \"isActive\": true,\n  \"updatedBy\": \"admin01\"\n}",
+              "options": { "raw": { "language": "json" } }
+            }
+          }
+        },
+        {
+          "name": "PUT /api/club-intro/{id}/image",
+          "request": {
+            "method": "PUT",
+            "url": {
+              "raw": "{{baseURL}}/api/club-intro/1/image",
+              "host": ["{{baseURL}}"],
+              "path": ["api", "club-intro", "1", "image"]
+            },
+            "body": {
+              "mode": "formdata",
+              "formdata": [{ "key": "file", "type": "file", "src": "" }]
+            }
+          }
+        },
+        {
+          "name": "PUT /api/club-intro/{id}",
+          "request": {
+            "method": "PUT",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": {
+              "raw": "{{baseURL}}/api/club-intro/1",
+              "host": ["{{baseURL}}"],
+              "path": ["api", "club-intro", "1"]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"REVERSE\",\n  \"subTitle\": \"남서울대학교 컴퓨터소프트웨어학과 동아리 (수정)\",\n  \"bannerUrl\": \"https://cdn.example.com/intro/uuid-filename.png\",\n  \"isActive\": true,\n  \"updatedBy\": \"admin01\"\n}",
+              "options": { "raw": { "language": "json" } }
+            }
+          }
+        },
+        {
+          "name": "DELETE /api/club-intro/{id}",
+          "request": {
+            "method": "DELETE",
+            "url": {
+              "raw": "{{baseURL}}/api/club-intro/1",
+              "host": ["{{baseURL}}"],
+              "path": ["api", "club-intro", "1"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "4. 프로젝트 소개 (Club Project)",
+      "item": [
+        {
+          "name": "GET /api/club-project",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseURL}}/api/club-project",
+              "host": ["{{baseURL}}"],
+              "path": ["api", "club-project"]
+            }
+          }
+        },
+        {
+          "name": "POST /api/club-project/image",
+          "request": {
+            "method": "POST",
+            "url": {
+              "raw": "{{baseURL}}/api/club-project/image",
+              "host": ["{{baseURL}}"],
+              "path": ["api", "club-project", "image"]
+            },
+            "body": {
+              "mode": "formdata",
+              "formdata": [{ "key": "file", "type": "file", "src": "" }]
+            }
+          }
+        },
+        {
+          "name": "POST /api/club-project",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": {
+              "raw": "{{baseURL}}/api/club-project",
+              "host": ["{{baseURL}}"],
+              "path": ["api", "club-project"]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"projectName\": \"REVERSE 웹사이트\",\n  \"thumbnailUrl\": \"https://cdn.example.com/project/uuid-filename.png\",\n  \"projectUrl\": \"https://github.com/example/reverse\",\n  \"sortOrder\": 0,\n  \"updatedBy\": \"admin01\"\n}",
+              "options": { "raw": { "language": "json" } }
+            }
+          }
+        },
+        {
+          "name": "PUT /api/club-project/{id}/image",
+          "request": {
+            "method": "PUT",
+            "url": {
+              "raw": "{{baseURL}}/api/club-project/1/image",
+              "host": ["{{baseURL}}"],
+              "path": ["api", "club-project", "1", "image"]
+            },
+            "body": {
+              "mode": "formdata",
+              "formdata": [{ "key": "file", "type": "file", "src": "" }]
+            }
+          }
+        },
+        {
+          "name": "PUT /api/club-project/{id}",
+          "request": {
+            "method": "PUT",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": {
+              "raw": "{{baseURL}}/api/club-project/1",
+              "host": ["{{baseURL}}"],
+              "path": ["api", "club-project", "1"]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"projectName\": \"REVERSE 웹사이트 (수정)\",\n  \"thumbnailUrl\": \"https://cdn.example.com/project/uuid-filename.png\",\n  \"projectUrl\": \"https://github.com/example/reverse\",\n  \"sortOrder\": 0,\n  \"updatedBy\": \"admin01\"\n}",
+              "options": { "raw": { "language": "json" } }
+            }
+          }
+        },
+        {
+          "name": "DELETE /api/club-project/{id}",
+          "request": {
+            "method": "DELETE",
+            "url": {
+              "raw": "{{baseURL}}/api/club-project/1",
+              "host": ["{{baseURL}}"],
+              "path": ["api", "club-project", "1"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "5. 임원진 소개 (Officer)",
+      "item": [
+        {
+          "name": "GET /api/officer",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseURL}}/api/officer",
+              "host": ["{{baseURL}}"],
+              "path": ["api", "officer"]
+            }
+          }
+        },
+        {
+          "name": "POST /api/officer/image",
+          "request": {
+            "method": "POST",
+            "url": {
+              "raw": "{{baseURL}}/api/officer/image",
+              "host": ["{{baseURL}}"],
+              "path": ["api", "officer", "image"]
+            },
+            "body": {
+              "mode": "formdata",
+              "formdata": [{ "key": "file", "type": "file", "src": "" }]
+            }
+          }
+        },
+        {
+          "name": "POST /api/officer",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": {
+              "raw": "{{baseURL}}/api/officer",
+              "host": ["{{baseURL}}"],
+              "path": ["api", "officer"]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"홍길동\",\n  \"generation\": 5,\n  \"role\": \"회장\",\n  \"department\": \"개발\",\n  \"email\": \"hong@example.com\",\n  \"photoUrl\": \"https://cdn.example.com/officer/uuid-filename.png\",\n  \"sortOrder\": 0,\n  \"isVisible\": true,\n  \"updatedBy\": \"admin01\"\n}",
+              "options": { "raw": { "language": "json" } }
+            }
+          }
+        },
+        {
+          "name": "PUT /api/officer/{id}/image",
+          "request": {
+            "method": "PUT",
+            "url": {
+              "raw": "{{baseURL}}/api/officer/1/image",
+              "host": ["{{baseURL}}"],
+              "path": ["api", "officer", "1", "image"]
+            },
+            "body": {
+              "mode": "formdata",
+              "formdata": [{ "key": "file", "type": "file", "src": "" }]
+            }
+          }
+        },
+        {
+          "name": "PUT /api/officer/{id}",
+          "request": {
+            "method": "PUT",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": {
+              "raw": "{{baseURL}}/api/officer/1",
+              "host": ["{{baseURL}}"],
+              "path": ["api", "officer", "1"]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"홍길동\",\n  \"generation\": 5,\n  \"role\": \"부회장\",\n  \"department\": \"개발\",\n  \"email\": \"hong@example.com\",\n  \"photoUrl\": \"https://cdn.example.com/officer/uuid-filename.png\",\n  \"sortOrder\": 1,\n  \"isVisible\": true,\n  \"updatedBy\": \"admin01\"\n}",
+              "options": { "raw": { "language": "json" } }
+            }
+          }
+        },
+        {
+          "name": "DELETE /api/officer/{id}",
+          "request": {
+            "method": "DELETE",
+            "url": {
+              "raw": "{{baseURL}}/api/officer/1",
+              "host": ["{{baseURL}}"],
+              "path": ["api", "officer", "1"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "6. 약관 (Terms)",
+      "item": [
+        {
+          "name": "GET /api/terms",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseURL}}/api/terms",
+              "host": ["{{baseURL}}"],
+              "path": ["api", "terms"]
+            }
+          }
+        },
+        {
+          "name": "POST /api/terms",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": {
+              "raw": "{{baseURL}}/api/terms",
+              "host": ["{{baseURL}}"],
+              "path": ["api", "terms"]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"sortOrder\": 0,\n  \"version\": \"v1.0\",\n  \"title\": \"개인정보 처리방침\",\n  \"contents\": \"...\",\n  \"isCurrent\": true,\n  \"updatedBy\": \"admin01\"\n}",
+              "options": { "raw": { "language": "json" } }
+            }
+          }
+        },
+        {
+          "name": "PUT /api/terms/{id}",
+          "request": {
+            "method": "PUT",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": {
+              "raw": "{{baseURL}}/api/terms/1",
+              "host": ["{{baseURL}}"],
+              "path": ["api", "terms", "1"]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"sortOrder\": 0,\n  \"version\": \"v1.0\",\n  \"title\": \"개인정보 처리방침 (수정)\",\n  \"contents\": \"...\",\n  \"isCurrent\": true\n}",
+              "options": { "raw": { "language": "json" } }
+            }
+          }
+        },
+        {
+          "name": "DELETE /api/terms/{id}",
+          "request": {
+            "method": "DELETE",
+            "url": {
+              "raw": "{{baseURL}}/api/terms/1",
+              "host": ["{{baseURL}}"],
+              "path": ["api", "terms", "1"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "7. R2 스토리지 테스트",
+      "item": [
+        {
+          "name": "POST /api/r2/upload",
+          "request": {
+            "method": "POST",
+            "url": {
+              "raw": "{{baseURL}}/api/r2/upload",
+              "host": ["{{baseURL}}"],
+              "path": ["api", "r2", "upload"]
+            },
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                { "key": "file", "type": "file", "src": "" },
+                { "key": "folder", "value": "test", "type": "text" }
+              ]
+            }
+          }
+        },
+        {
+          "name": "DELETE /api/r2/delete",
+          "request": {
+            "method": "DELETE",
+            "url": {
+              "raw": "{{baseURL}}/api/r2/delete?fileUrl=https://cdn.example.com/test/uuid-filename.png",
+              "host": ["{{baseURL}}"],
+              "path": ["api", "r2", "delete"],
+              "query": [
+                {
+                  "key": "fileUrl",
+                  "value": "https://cdn.example.com/test/uuid-filename.png"
+                }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "8. 모집 공고 (Recruitment)",
+      "item": [
+        {
+          "name": "GET /api/recruit",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseURL}}/api/recruit",
+              "host": ["{{baseURL}}"],
+              "path": ["api", "recruit"]
+            }
+          }
+        },
+        {
+          "name": "GET /api/recruit/{id}",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseURL}}/api/recruit/1",
+              "host": ["{{baseURL}}"],
+              "path": ["api", "recruit", "1"]
+            }
+          }
+        },
+        {
+          "name": "POST /api/recruit",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": {
+              "raw": "{{baseURL}}/api/recruit",
+              "host": ["{{baseURL}}"],
+              "path": ["api", "recruit"]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"2026년 1학기 신입 부원 모집\",\n  \"description\": \"REVERSE 동아리 신입 부원을 모집합니다.\",\n  \"applyStartDate\": \"2026-04-01T00:00:00\",\n  \"applyEndDate\": \"2026-04-30T23:59:59\",\n  \"updatedBy\": \"admin01\"\n}",
+              "options": { "raw": { "language": "json" } }
+            }
+          }
+        },
+        {
+          "name": "PUT /api/recruit/{id}",
+          "request": {
+            "method": "PUT",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": {
+              "raw": "{{baseURL}}/api/recruit/1",
+              "host": ["{{baseURL}}"],
+              "path": ["api", "recruit", "1"]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"2026년 1학기 신입 부원 모집 (수정)\",\n  \"description\": \"REVERSE 동아리 신입 부원을 모집합니다.\",\n  \"applyStartDate\": \"2026-04-01T00:00:00\",\n  \"applyEndDate\": \"2026-04-30T23:59:59\",\n  \"updatedBy\": \"admin01\"\n}",
+              "options": { "raw": { "language": "json" } }
+            }
+          }
+        },
+        {
+          "name": "DELETE /api/recruit/{id}",
+          "request": {
+            "method": "DELETE",
+            "url": {
+              "raw": "{{baseURL}}/api/recruit/1",
+              "host": ["{{baseURL}}"],
+              "path": ["api", "recruit", "1"]
+            }
+          }
+        },
+        {
+          "name": "PATCH /api/recruit/admin/{id}/status",
+          "request": {
+            "method": "PATCH",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": {
+              "raw": "{{baseURL}}/api/recruit/admin/1/status?roleId=1",
+              "host": ["{{baseURL}}"],
+              "path": ["api", "recruit", "admin", "1", "status"],
+              "query": [{ "key": "roleId", "value": "1" }]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"isActive\": false\n}",
+              "options": { "raw": { "language": "json" } }
+            }
+          }
+        },
+        {
+          "name": "POST /api/recruit/apply",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": {
+              "raw": "{{baseURL}}/api/recruit/apply",
+              "host": ["{{baseURL}}"],
+              "path": ["api", "recruit", "apply"]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"recruitmentId\": 1,\n  \"applicantName\": \"홍길동\",\n  \"department\": \"컴퓨터소프트웨어학과\",\n  \"studentNumber\": \"20210001\",\n  \"phoneNumber\": \"010-1234-5678\",\n  \"grade\": 3,\n  \"email\": \"hong@example.com\",\n  \"termsAgreed\": true,\n  \"applyFields\": [\"메인프로젝트\", \"스터디\"]\n}",
+              "options": { "raw": { "language": "json" } }
+            }
+          }
+        },
+        {
+          "name": "POST /api/recruit/notify",
+          "request": {
+            "method": "POST",
+            "url": {
+              "raw": "{{baseURL}}/api/recruit/notify?email=hong@example.com",
+              "host": ["{{baseURL}}"],
+              "path": ["api", "recruit", "notify"],
+              "query": [{ "key": "email", "value": "hong@example.com" }]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "9. 일정 (Schedule)",
+      "item": [
+        {
+          "name": "GET /api/schedule/category (공개)",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseURL}}/api/schedule/category",
+              "host": ["{{baseURL}}"],
+              "path": ["api", "schedule", "category"]
+            }
+          }
+        },
+        {
+          "name": "GET /api/schedule (월별 공개 일정)",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseURL}}/api/schedule?year=2026&month=4",
+              "host": ["{{baseURL}}"],
+              "path": ["api", "schedule"],
+              "query": [
+                { "key": "year", "value": "2026" },
+                { "key": "month", "value": "4" }
+              ]
+            }
+          }
+        },
+        {
+          "name": "GET /api/schedule/{id}",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseURL}}/api/schedule/1",
+              "host": ["{{baseURL}}"],
+              "path": ["api", "schedule", "1"]
+            }
+          }
+        },
+        {
+          "name": "GET /api/schedule/admin/category (전체)",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseURL}}/api/schedule/admin/category",
+              "host": ["{{baseURL}}"],
+              "path": ["api", "schedule", "admin", "category"]
+            }
+          }
+        },
+        {
+          "name": "POST /api/schedule/admin/category",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": {
+              "raw": "{{baseURL}}/api/schedule/admin/category",
+              "host": ["{{baseURL}}"],
+              "path": ["api", "schedule", "admin", "category"]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"categoryName\": \"동아리\",\n  \"colorCode\": \"#FF5733\",\n  \"sortOrder\": 0,\n  \"isVisible\": true,\n  \"updatedBy\": \"admin01\"\n}",
+              "options": { "raw": { "language": "json" } }
+            }
+          }
+        },
+        {
+          "name": "PUT /api/schedule/admin/category/{id}",
+          "request": {
+            "method": "PUT",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": {
+              "raw": "{{baseURL}}/api/schedule/admin/category/1",
+              "host": ["{{baseURL}}"],
+              "path": ["api", "schedule", "admin", "category", "1"]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"categoryName\": \"동아리 (수정)\",\n  \"colorCode\": \"#3399FF\",\n  \"sortOrder\": 0,\n  \"isVisible\": true,\n  \"updatedBy\": \"admin01\"\n}",
+              "options": { "raw": { "language": "json" } }
+            }
+          }
+        },
+        {
+          "name": "DELETE /api/schedule/admin/category/{id}",
+          "request": {
+            "method": "DELETE",
+            "url": {
+              "raw": "{{baseURL}}/api/schedule/admin/category/1",
+              "host": ["{{baseURL}}"],
+              "path": ["api", "schedule", "admin", "category", "1"]
+            }
+          }
+        },
+        {
+          "name": "GET /api/schedule/admin (월별 전체)",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseURL}}/api/schedule/admin?year=2026&month=4",
+              "host": ["{{baseURL}}"],
+              "path": ["api", "schedule", "admin"],
+              "query": [
+                { "key": "year", "value": "2026" },
+                { "key": "month", "value": "4" }
+              ]
+            }
+          }
+        },
+        {
+          "name": "POST /api/schedule/admin",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": {
+              "raw": "{{baseURL}}/api/schedule/admin",
+              "host": ["{{baseURL}}"],
+              "path": ["api", "schedule", "admin"]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"categoryId\": 1,\n  \"title\": \"동아리 OT\",\n  \"description\": \"2026년 1학기 OT\",\n  \"startDate\": \"2026-04-05\",\n  \"endDate\": \"2026-04-05\",\n  \"startTime\": \"14:00:00\",\n  \"endTime\": \"17:00:00\",\n  \"isAllDay\": false,\n  \"isVisible\": true,\n  \"updatedBy\": \"admin01\"\n}",
+              "options": { "raw": { "language": "json" } }
+            }
+          }
+        },
+        {
+          "name": "PUT /api/schedule/admin/{id}",
+          "request": {
+            "method": "PUT",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": {
+              "raw": "{{baseURL}}/api/schedule/admin/1",
+              "host": ["{{baseURL}}"],
+              "path": ["api", "schedule", "admin", "1"]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"categoryId\": 1,\n  \"title\": \"동아리 OT (수정)\",\n  \"description\": \"2026년 1학기 OT 수정\",\n  \"startDate\": \"2026-04-05\",\n  \"endDate\": \"2026-04-05\",\n  \"startTime\": \"15:00:00\",\n  \"endTime\": \"18:00:00\",\n  \"isAllDay\": false,\n  \"isVisible\": true,\n  \"updatedBy\": \"admin01\"\n}",
+              "options": { "raw": { "language": "json" } }
+            }
+          }
+        },
+        {
+          "name": "DELETE /api/schedule/admin/{id}",
+          "request": {
+            "method": "DELETE",
+            "url": {
+              "raw": "{{baseURL}}/api/schedule/admin/1",
+              "host": ["{{baseURL}}"],
+              "path": ["api", "schedule", "admin", "1"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "10. 공휴일 (Holiday)",
+      "item": [
+        {
+          "name": "GET /api/holiday (월별 조회)",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseURL}}/api/holiday?year=2026&month=4",
+              "host": ["{{baseURL}}"],
+              "path": ["api", "holiday"],
+              "query": [
+                { "key": "year", "value": "2026" },
+                { "key": "month", "value": "4" }
+              ]
+            }
+          }
+        },
+        {
+          "name": "POST /api/holiday/admin/sync (연도별 동기화)",
+          "request": {
+            "method": "POST",
+            "url": {
+              "raw": "{{baseURL}}/api/holiday/admin/sync?year=2026",
+              "host": ["{{baseURL}}"],
+              "path": ["api", "holiday", "admin", "sync"],
+              "query": [{ "key": "year", "value": "2026" }]
+            }
+          }
+        }
+      ]
+    }
+  ]
+}

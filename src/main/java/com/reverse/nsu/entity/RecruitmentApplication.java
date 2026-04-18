@@ -21,7 +21,6 @@ public class RecruitmentApplication {
     private String phoneNumber;
     private Byte grade;
     private String email;
-    private String interviewMemo;
     private Boolean termsAgreed; // TINYINT(1) 매핑
     private String status = "PENDING";
 

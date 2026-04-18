@@ -3,7 +3,7 @@
 - **Base URL**: `http://localhost:8080`
 - **응답 형식**: JSON (이미지 업로드 응답은 plain text)
 - **작성일**: 2026.04.09
-- **최종 수정일**: 2026.04.13 (모집 공고 섹션 추가)
+- **최종 수정일**: 2026.04.15 (일정, 공휴일 섹션 추가 / interviewMemo 필드 제거)
 
 ---
 
@@ -17,6 +17,8 @@
 6. [약관 (Terms)](#6-약관-terms)
 7. [R2 스토리지 테스트 (R2)](#7-r2-스토리지-테스트-r2)
 8. [모집 공고 (Recruitment)](#8-모집-공고-recruitment)
+9. [일정 (Schedule)](#9-일정-schedule)
+10. [공휴일 (Holiday)](#10-공휴일-holiday)
 
 ---
 
@@ -1026,7 +1028,6 @@ Base Path: `/api/recruit`
 | `phoneNumber` | String | Y | 전화번호 |
 | `grade` | Byte | Y | 학년 |
 | `email` | String | Y | 이메일 |
-| `interviewMemo` | String | N | 면접 관련 메모 |
 | `termsAgreed` | Boolean | Y | 약관 동의 여부 |
 | `applyFields` | List\<String\> | Y | 지원 분야 목록 (예: `["메인프로젝트", "스터디"]`) |
 
@@ -1039,7 +1040,6 @@ Base Path: `/api/recruit`
   "phoneNumber": "010-1234-5678",
   "grade": 3,
   "email": "hong@example.com",
-  "interviewMemo": "오후 2시 이후 가능",
   "termsAgreed": true,
   "applyFields": ["메인프로젝트", "스터디"]
 }
@@ -1064,6 +1064,284 @@ Base Path: `/api/recruit`
 **응답 `200 OK`** (plain text)
 ```
 공고 알림 구독이 완료되었습니다.
+```
+
+---
+
+---
+
+## 9. 일정 (Schedule)
+
+Base Path: `/api/schedule`
+
+---
+
+### GET /api/schedule/category
+노출 중인 카테고리 목록을 `sortOrder` 오름차순으로 조회한다.
+
+**응답 `200 OK`**
+```json
+[
+  {
+    "id": 1,
+    "categoryName": "동아리",
+    "colorCode": "#FF5733",
+    "sortOrder": 0,
+    "isVisible": true,
+    "updatedBy": "admin01",
+    "createdAt": "2026-04-01T12:00:00",
+    "updatedAt": "2026-04-01T12:00:00"
+  }
+]
+```
+
+---
+
+### GET /api/schedule
+월별 공개 일정 목록을 조회한다. `year`, `month` 파라미터 생략 시 현재 연월로 조회한다.
+
+**Query Parameter**
+
+| 파라미터 | 타입 | 필수 | 설명 |
+|---|---|---|---|
+| `year` | Integer | N | 조회 연도 (기본값: 현재 연도) |
+| `month` | Integer | N | 조회 월 (기본값: 현재 월) |
+
+**응답 `200 OK`**
+```json
+[
+  {
+    "id": 1,
+    "categoryId": 1,
+    "categoryName": "동아리",
+    "colorCode": "#FF5733",
+    "title": "동아리 OT",
+    "description": "2026년 1학기 OT",
+    "startDate": "2026-04-05",
+    "endDate": "2026-04-05",
+    "startTime": "14:00:00",
+    "endTime": "17:00:00",
+    "isAllDay": false,
+    "isVisible": true,
+    "updatedBy": "admin01",
+    "createdAt": "2026-04-01T12:00:00",
+    "updatedAt": "2026-04-01T12:00:00"
+  }
+]
+```
+
+---
+
+### GET /api/schedule/{id}
+일정 단건을 조회한다.
+
+**Path Variable**
+
+| 파라미터 | 타입 | 설명 |
+|---|---|---|
+| `id` | Integer | 조회할 일정 ID |
+
+**응답 `200 OK`** — 위 목록 응답의 단건 형태와 동일
+
+---
+
+### GET /api/schedule/admin/category
+카테고리 전체 목록을 조회한다 (숨김 포함).
+
+**응답 `200 OK`** — GET /api/schedule/category 응답과 동일한 구조
+
+---
+
+### POST /api/schedule/admin/category
+카테고리를 생성한다.
+
+**요청 Body** `application/json`
+
+| 필드 | 타입 | 필수 | 설명 |
+|---|---|---|---|
+| `categoryName` | String | Y | 카테고리 이름 (최대 30자) |
+| `colorCode` | String | N | HEX 색상코드 (기본값: `#FFFFFF`) |
+| `sortOrder` | Integer | N | 노출 순서 (기본값: `0`) |
+| `isVisible` | Boolean | N | 노출 여부 (기본값: `true`) |
+| `updatedBy` | String | Y | 등록 관리자 ID |
+
+```json
+{
+  "categoryName": "동아리",
+  "colorCode": "#FF5733",
+  "sortOrder": 0,
+  "isVisible": true,
+  "updatedBy": "admin01"
+}
+```
+
+**응답 `200 OK`** — 생성된 카테고리 단건 반환
+
+---
+
+### PUT /api/schedule/admin/category/{id}
+카테고리를 수정한다.
+
+**Path Variable**
+
+| 파라미터 | 타입 | 설명 |
+|---|---|---|
+| `id` | Integer | 수정할 카테고리 ID |
+
+**요청 Body** `application/json` — POST 요청과 동일한 구조
+
+**응답 `200 OK`** — 수정된 카테고리 단건 반환
+
+---
+
+### DELETE /api/schedule/admin/category/{id}
+카테고리를 삭제한다.
+
+**Path Variable**
+
+| 파라미터 | 타입 | 설명 |
+|---|---|---|
+| `id` | Integer | 삭제할 카테고리 ID |
+
+**응답 `200 OK`** (plain text)
+```
+카테고리가 삭제되었습니다. ID: 1
+```
+
+---
+
+### GET /api/schedule/admin
+월별 전체 일정을 조회한다 (숨김 포함).
+
+**Query Parameter**
+
+| 파라미터 | 타입 | 필수 | 설명 |
+|---|---|---|---|
+| `year` | Integer | Y | 조회 연도 |
+| `month` | Integer | Y | 조회 월 |
+
+**응답 `200 OK`** — GET /api/schedule 응답과 동일한 구조
+
+---
+
+### POST /api/schedule/admin
+일정을 생성한다.
+
+**요청 Body** `application/json`
+
+| 필드 | 타입 | 필수 | 설명 |
+|---|---|---|---|
+| `categoryId` | Integer | Y | 카테고리 ID |
+| `title` | String | Y | 일정 제목 (최대 100자) |
+| `description` | String | N | 일정 상세 설명 |
+| `startDate` | LocalDate | Y | 시작일 (`yyyy-MM-dd`) |
+| `endDate` | LocalDate | Y | 종료일 (`yyyy-MM-dd`, 단일 일정이면 startDate와 동일) |
+| `startTime` | LocalTime | N | 시작 시간 (`HH:mm:ss`, 종일이면 생략) |
+| `endTime` | LocalTime | N | 종료 시간 (`HH:mm:ss`, 종일이면 생략) |
+| `isAllDay` | Boolean | N | 종일 일정 여부 (기본값: `true`) |
+| `isVisible` | Boolean | N | 노출 여부 (기본값: `true`) |
+| `updatedBy` | String | Y | 등록 관리자 ID |
+
+```json
+{
+  "categoryId": 1,
+  "title": "동아리 OT",
+  "description": "2026년 1학기 OT",
+  "startDate": "2026-04-05",
+  "endDate": "2026-04-05",
+  "startTime": "14:00:00",
+  "endTime": "17:00:00",
+  "isAllDay": false,
+  "isVisible": true,
+  "updatedBy": "admin01"
+}
+```
+
+**응답 `200 OK`** — 생성된 일정 단건 반환
+
+---
+
+### PUT /api/schedule/admin/{id}
+일정을 수정한다.
+
+**Path Variable**
+
+| 파라미터 | 타입 | 설명 |
+|---|---|---|
+| `id` | Integer | 수정할 일정 ID |
+
+**요청 Body** `application/json` — POST 요청과 동일한 구조
+
+**응답 `200 OK`** — 수정된 일정 단건 반환
+
+---
+
+### DELETE /api/schedule/admin/{id}
+일정을 삭제한다.
+
+**Path Variable**
+
+| 파라미터 | 타입 | 설명 |
+|---|---|---|
+| `id` | Integer | 삭제할 일정 ID |
+
+**응답 `200 OK`** (plain text)
+```
+일정이 삭제되었습니다. ID: 1
+```
+
+---
+
+## 10. 공휴일 (Holiday)
+
+Base Path: `/api/holiday`
+
+> 공공데이터포털 "한국천문연구원 특일 정보" API 연동.
+> 매년 1월 1일 00:05 자동 갱신되며, 수동 동기화도 가능하다.
+
+---
+
+### GET /api/holiday
+월별 공휴일 목록을 조회한다.
+
+**Query Parameter**
+
+| 파라미터 | 타입 | 필수 | 설명 |
+|---|---|---|---|
+| `year` | Integer | Y | 조회 연도 |
+| `month` | Integer | Y | 조회 월 |
+
+**응답 `200 OK`**
+```json
+[
+  {
+    "id": 1,
+    "holidayDate": "2026-03-01",
+    "holidayName": "삼일절",
+    "isHoliday": true,
+    "year": 2026
+  }
+]
+```
+
+---
+
+### POST /api/holiday/admin/sync
+특정 연도의 공휴일을 공공 API에서 수동으로 동기화한다.
+기존 데이터를 삭제 후 재저장한다.
+
+**Query Parameter**
+
+| 파라미터 | 타입 | 필수 | 설명 |
+|---|---|---|---|
+| `year` | Integer | Y | 동기화할 연도 |
+
+**응답 `200 OK`**
+```json
+{
+  "status": "success",
+  "message": "2026년 공휴일 동기화가 완료되었습니다."
+}
 ```
 
 ---
