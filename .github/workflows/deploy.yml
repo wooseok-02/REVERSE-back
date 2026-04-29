@@ -8,4 +8,6 @@ jobs:
     steps:
       - uses: actions/checkout@v3
       - name: 빌드
-        run: ./gradlew bootJar
+        run: |
+          chmod +x gradlew
+          ./gradlew bootJar
