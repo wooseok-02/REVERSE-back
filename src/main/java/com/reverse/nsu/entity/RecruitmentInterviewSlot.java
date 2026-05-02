@@ -3,6 +3,7 @@ package com.reverse.nsu.entity;
 import jakarta.persistence.*;
 import lombok.*;
 import java.time.LocalDate;
+import java.time.LocalTime;
 
 @Entity
 @Getter @Setter
@@ -15,22 +16,43 @@ public class RecruitmentInterviewSlot extends BaseTimeEntity {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "slotId")
-    private Integer id; // 자바 내부에서는 id로 사용
+    private Integer slotId; // id에서 slotId로 수정
 
-    @Column(name = "recruitmentId", nullable = false)
-    private Integer recruitmentId;
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "recruitmentId", nullable = false)
+    private Recruitment recruitment;
 
-    // 서비스 코드가 s.getInterviewDate()를 찾고 있으므로 추가
-    @Column(name = "slotDate", nullable = false)
+    @Column(name = "slotDate")
     private LocalDate slotDate;
 
+    @Column(name = "interviewDate")
+    private LocalDate interviewDate; // 스키마에 맞춰 추가
+
+    @Column(name = "startTime")
+    private LocalTime startTime; // 스키마에 맞춰 추가
+
+    @Column(name = "endTime")
+    private LocalTime endTime; // 스키마에 맞춰 추가
+
     @Column(name = "capacity", nullable = false)
-    private Integer capacity;
+    @Builder.Default
+    private Integer capacity = 1;
 
-    @Column(name = "isActive", nullable = false)
-    private Boolean isActive;
+    @Column(name = "maxCapacity")
+    private Integer maxCapacity; // 스키마에 맞춰 추가
 
-    // --- 서비스 코드와의 호환성을 위한 브릿지 메서드 ---
-    public Integer getSlotId() { return this.id; }
-    public LocalDate getInterviewDate() { return this.slotDate; }
+    @Column(name = "currentCount")
+    private Integer currentCount; // 스키마에 맞춰 추가
+
+    @Column(name = "isActive", columnDefinition = "TINYINT(1)", nullable = false)
+    @Builder.Default
+    private Boolean isActive = true;
+
+    @Column(name = "updatedBy")
+    private String updatedBy;
+
+    // 서비스 코드 호환용 브릿지 메서드 (필요시 유지)
+    public LocalDate getInterviewDate() {
+        return this.interviewDate != null ? this.interviewDate : this.slotDate;
+    }
 }

@@ -13,34 +13,30 @@ public class RecruitmentPageContact extends BaseTimeEntity {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    @Column(name = "contactId")
-    private Integer id;
+    @Column(name = "contactId") // id -> contactId로 수정
+    private Integer contactId;
 
-    // 연결된 모집 페이지 ID
-    @Column(name = "pageId", nullable = false)
-    private Integer pageId;
+    // Integer pageId -> RecruitmentPage 객체 참조로 수정
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "pageId", nullable = false)
+    private RecruitmentPage recruitmentPage;
 
-    // 연락처 타입 (예: SNS, PHONE, LOCATION)
     @Column(name = "contactType", length = 20, nullable = false)
     private String contactType;
 
-    // 표시 라벨 (예: Instagram, 대표번호, 과방 위치)
     @Column(name = "label", length = 50, nullable = false)
     private String label;
 
-    // 실제 값 (예: @nsu_reverse, 010-0000-0000)
-    @Column(name = "value", nullable = false)
+    @Column(name = "value", length = 255, nullable = false)
     private String value;
 
-    // 추가 정보 (예: 부회장 번호, 상세 주소 등 - NULL 허용)
-    @Column(name = "subValue")
+    @Column(name = "subValue", length = 255)
     private String subValue;
 
-    // 출력 순서
     @Column(name = "sortOrder", nullable = false)
-    private Integer sortOrder;
+    @Builder.Default
+    private Integer sortOrder = 0; // 기본값 0 추가
 
-    // 최종 수정자 ID
     @Column(name = "updatedBy", length = 15, nullable = false)
     private String updatedBy;
 }

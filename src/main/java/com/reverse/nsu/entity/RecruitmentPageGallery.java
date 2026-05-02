@@ -13,34 +13,31 @@ public class RecruitmentPageGallery extends BaseTimeEntity {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    @Column(name = "galleryId")
-    private Integer id;
+    @Column(name = "galleryId") // id -> galleryId로 수정
+    private Integer galleryId;
 
-    // 연결된 모집 페이지 ID
-    @Column(name = "pageId", nullable = false)
-    private Integer pageId;
+    // Integer pageId -> RecruitmentPage 객체 참조로 수정
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "pageId", nullable = false)
+    private RecruitmentPage recruitmentPage;
 
-    // 이미지 경로 (TEXT 타입)
     @Column(name = "imageUrl", columnDefinition = "TEXT", nullable = false)
     private String imageUrl;
 
-    // 이미지 설명 (Alt 텍스트 등)
     @Column(name = "imageDesc", length = 100)
     private String imageDesc;
 
-    // 태그 (스터디, 세미나, 대외활동 등)
     @Column(name = "tag", length = 20, nullable = false)
     private String tag;
 
-    // 정렬 순서
     @Column(name = "sortOrder", nullable = false)
-    private Integer sortOrder;
+    @Builder.Default
+    private Integer sortOrder = 0; // 기본값 0 추가
 
-    // 노출 여부 (TINYINT(1) -> Boolean)
-    @Column(name = "isVisible", nullable = false)
-    private Boolean isVisible;
+    @Column(name = "isVisible", columnDefinition = "TINYINT(1)", nullable = false)
+    @Builder.Default
+    private Boolean isVisible = true; // 기본값 true(1) 추가
 
-    // 최종 수정자 ID
     @Column(name = "updatedBy", length = 15, nullable = false)
     private String updatedBy;
 }

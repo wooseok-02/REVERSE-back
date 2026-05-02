@@ -5,6 +5,6 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import java.util.Optional;
 
 public interface RecruitmentPageRepository extends JpaRepository<RecruitmentPage, Integer> {
-    Optional<RecruitmentPage> findByRecruitmentId(Integer recruitmentId);
-    void deleteByRecruitmentId(Integer recruitmentId);
+    // 공고 ID로 상세 페이지 조회 (엔티티의 연관 관계 필드명 반영)
+    Optional<RecruitmentPage> findByRecruitment_RecruitmentId(Integer recruitmentId);
 }
