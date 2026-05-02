@@ -20,7 +20,6 @@ repositories {
 dependencies {
 	implementation 'org.springframework.boot:spring-boot-starter-data-jpa'
 	implementation 'org.springframework.boot:spring-boot-starter-web'
-
 	compileOnly 'org.projectlombok:lombok'
 	runtimeOnly 'org.mariadb.jdbc:mariadb-java-client'
 	runtimeOnly 'com.h2database:h2'  // 테스트 DB
@@ -42,6 +41,7 @@ dependencies {
 	implementation 'org.springframework.security:spring-security-crypto'
 
 
+	testAnnotationProcessor 'org.projectlombok:lombok'
 }
 
 tasks.named('test') {

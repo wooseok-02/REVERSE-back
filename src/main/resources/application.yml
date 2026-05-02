@@ -1,0 +1,21 @@
+spring:
+    datasource:
+        # URL의 엔드포인트와 DB 명칭을 최신 버전으로 유지했습니다.
+        url: jdbc:mariadb://reverse-db.cfuqics4yaav.ap-northeast-2.rds.amazonaws.com:3306/reverseWebDB?useSsl=true
+        # 환경 변수 DB_USERNAME이 있으면 쓰고, 없으면 root를 기본값으로 사용합니다.
+        username: ${DB_USERNAME:root}
+        # 보안을 위해 비밀번호는 반드시 환경 변수 DB_PASSWORD를 통해서만 가져옵니다.
+        password: ${DB_PASSWORD}
+        driver-class-name: org.mariadb.jdbc.Driver
+
+    jpa:
+        hibernate:
+            ddl-auto: none
+            # 자바 변수명(termsId)과 DB 컬럼명을 1:1로 매칭해주는 전략 (리더님 설정 유지)
+            naming:
+                physical-strategy: org.hibernate.boot.model.naming.PhysicalNamingStrategyStandardImpl
+        show-sql: true
+        properties:
+            hibernate:
+                format_sql: true
+                dialect: org.hibernate.dialect.MariaDBDialect
