@@ -3,9 +3,12 @@ package com.reverse.nsu.repository;
 import com.reverse.nsu.entity.Terms;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
+import java.util.Optional;
 
 @Repository
-public interface TermsRepository extends JpaRepository<Terms, Long> {
-    // 여기에 아무것도 안 적어도 됩니다!
-    // JpaRepository를 상속받는 것만으로도 저장, 삭제, 조회 기능을 이미 다 갖게 돼요.
+public interface TermsRepository extends JpaRepository<Terms, Integer> {
+
+    // [INTRO01_04] 화면 정의서의 '약관 내용 출력'을 위해
+    // isCurrent 컬럼이 true(1)인 약관을 찾는 메서드 추가
+    Optional<Terms> findByIsCurrentTrue();
 }

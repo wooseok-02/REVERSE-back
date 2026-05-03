@@ -5,6 +5,7 @@ import lombok.*;
 
 import java.time.LocalDate;
 import java.time.LocalTime;
+import java.time.LocalDateTime;
 
 @Entity
 @Table(name = "SCHEDULE")
@@ -61,5 +62,13 @@ public class Schedule extends BaseTimeEntity {
         this.isAllDay = isAllDay;
         this.isVisible = isVisible;
         this.updatedBy = updatedBy;
+    }
+
+    public LocalDateTime getCreatedAt() {
+        return super.getCreatedAt();
+    }
+
+    public LocalDateTime getUpdatedAt() {
+        return super.getUpdatedAt();
     }
 }
