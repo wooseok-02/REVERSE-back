@@ -7,12 +7,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.util.List;
 
 public interface RecruitmentPageFieldCardRepository extends JpaRepository<RecruitmentPageFieldCard, Integer> {
+    List<RecruitmentPageFieldCard> findAllByRecruitmentPage_PageIdOrderBySortOrderAsc(Integer pageId);
 
-    // 1. 페이지 ID로 모집 분야 카드 목록 조회 (정렬 순서 반영)
-    List<RecruitmentPageFieldCard> findAllByPage_PageIdOrderBySortOrderAsc(Integer pageId);
-
-    // 2. 페이지 ID로 해당 분야 카드 데이터 모두 삭제 (초기화 후 재등록 시 사용)
-    @Modifying
-    @Transactional
-    void deleteByPage_PageId(Integer pageId);
+    void deleteByRecruitmentPage_PageId(Integer pageId);
 }

@@ -1,29 +1,24 @@
 package com.reverse.nsu.controller;
 
 import com.reverse.nsu.entity.Terms;
-<<<<<<< HEAD
 import com.reverse.nsu.service.TermsService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
-=======
-import com.reverse.nsu.repository.TermsRepository;
-import org.springframework.beans.factory.annotation.Autowired;
->>>>>>> c10e86f9e304a6411650f93432379dd0bd402038
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.Map;
 
-<<<<<<< HEAD
 @RestController
 @RequestMapping("/api/terms")
-@RequiredArgsConstructor // 필드 주입 대신 생성자 주입 방식 사용
+@RequiredArgsConstructor
+@CrossOrigin(origins = "*") // 통합된 위치에 설정
 public class TermsController {
 
     private final TermsService termsService;
 
     /**
-     * [INTRO01_04] 약관 내용 소개 호출 API
-     * 화면 정의서 트리거: 페이지 진입 시 호출
+     * [INTRO01_04] 현재 활성화된 약관 내용 조회
      */
     @GetMapping("/current")
     public ResponseEntity<Terms> getCurrentTerms() {
@@ -31,85 +26,49 @@ public class TermsController {
         return ResponseEntity.ok(terms);
     }
 
-    // 1. 모든 약관 목록 가져오기 (관리자용)
+    /**
+     * 모든 약관 목록 가져오기 (관리자용)
+     */
     @GetMapping
     public List<Terms> getAllTerms() {
         return termsService.getAllTerms();
     }
 
-    // 2. 새 약관 저장하기 (관리자용)
+    /**
+     * 특정 약관 상세 보기
+     */
+    @GetMapping("/{id}")
+    public ResponseEntity<Terms> getTermsById(@PathVariable Integer id) {
+        Terms terms = termsService.getTermsById(id);
+        return ResponseEntity.ok(terms);
+    }
+
+    /**
+     * 새 약관 저장하기 (관리자용)
+     */
     @PostMapping
     public Terms createTerms(@RequestBody Terms terms) {
         return termsService.saveTerms(terms);
     }
 
-    // 3. 약관 수정
+    /**
+     * 약관 수정
+     */
     @PutMapping("/{id}")
     public Terms updateTerms(@PathVariable Integer id, @RequestBody Terms termsDetails) {
-        // 기존 데이터를 찾아서 수정하는 로직은 서비스에서 처리하거나
-        // 컨트롤러에서 ID를 세팅하여 저장합니다.
+        // 서비스에서 ID 세팅 및 수정 로직 처리
         termsDetails.setTermsId(id);
         return termsService.saveTerms(termsDetails);
     }
 
-    // 4. 약관 삭제
+    /**
+     * 약관 삭제
+     */
     @DeleteMapping("/{id}")
-    public String deleteTerms(@PathVariable Integer id) {
+    public ResponseEntity<?> deleteTerms(@PathVariable Integer id) {
         termsService.deleteTerms(id);
-=======
-@CrossOrigin(origins = "*")
-@RestController
-@RequestMapping("/api/terms")
-public class TermsController {
-
-    @Autowired
-    private TermsRepository termsRepository;
-
-    // 1. 모든 약관 목록 가져오기
-    @GetMapping
-    public List<Terms> getAllTerms() {
-        return termsRepository.findAll();
-    }
-
-    // 2. 특정 약관 상세 보기 (추가해두면 좋아요)
-    @GetMapping("/{id}")
-    public Terms getTermsById(@PathVariable Integer id) {
-        return termsRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("해당 약관을 찾을 수 없습니다. id: " + id));
-    }
-
-    // 3. 새 약관 저장하기
-    @PostMapping
-    public Terms createTerms(@RequestBody Terms terms) {
-        return termsRepository.save(terms);
-    }
-
-    // 4. 약관 수정 (Update)
-    @PutMapping("/{id}")
-    public Terms updateTerms(@PathVariable Integer id, @RequestBody Terms termsDetails) {
-        // Repository의 PK 타입이 Integer이므로 매개변수 타입을 Integer로 변경
-        Terms terms = termsRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("해당 약관을 찾을 수 없습니다. id: " + id));
-
-        // 리더님이 추가한 필드들까지 포함해서 업데이트
-        terms.setTitle(termsDetails.getTitle());
-        terms.setContents(termsDetails.getContents());
-        terms.setIsCurrent(termsDetails.getIsCurrent());
-        terms.setSortOrder(termsDetails.getSortOrder());
-        terms.setVersion(termsDetails.getVersion());
-        terms.setUpdatedBy(termsDetails.getUpdatedBy()); // 리더님이 추가한 필드
-
-        return termsRepository.save(terms);
-    }
-
-    // 5. 삭제 (Delete)
-    @DeleteMapping("/{id}")
-    public String deleteTerms(@PathVariable Integer id) {
-        Terms terms = termsRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("해당 약관을 찾을 수 없습니다. id: " + id));
-
-        termsRepository.delete(terms);
->>>>>>> c10e86f9e304a6411650f93432379dd0bd402038
-        return id + "번 약관이 성공적으로 삭제되었습니다.";
+        return ResponseEntity.ok(Map.of(
+                "message", id + "번 약관이 성공적으로 삭제되었습니다."
+        ));
     }
 }

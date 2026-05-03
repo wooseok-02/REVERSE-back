@@ -7,12 +7,9 @@ import org.springframework.transaction.annotation.Transactional;
 import java.util.List;
 
 public interface RecruitmentPageIntroRepository extends JpaRepository<RecruitmentPageIntro, Integer> {
+    // 메서드 이름이 정확히 일치해야 합니다.
+    List<RecruitmentPageIntro> findAllByRecruitmentPage_PageIdOrderBySortOrderAsc(Integer pageId);
 
-    // 1. 페이지 ID로 소개 글 목록 조회 (정렬 순서 반영)
-    List<RecruitmentPageIntro> findAllByPage_PageIdOrderBySortOrderAsc(Integer pageId);
-
-    // 2. 페이지 ID로 해당 소개 글들 모두 삭제
-    @Modifying
-    @Transactional
-    void deleteByPage_PageId(Integer pageId);
+    // delete 로직을 위해 이것도 필요합니다.
+    void deleteByRecruitmentPage_PageId(Integer pageId);
 }

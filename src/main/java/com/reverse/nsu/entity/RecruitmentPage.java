@@ -2,77 +2,68 @@ package com.reverse.nsu.entity;
 
 import jakarta.persistence.*;
 import lombok.*;
-import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.List;
 
 @Entity
 @Table(name = "RECRUITMENT_PAGE")
-@Getter @Setter
-@NoArgsConstructor @AllArgsConstructor
+@Getter
+@Setter
+@NoArgsConstructor
+@AllArgsConstructor
 @Builder
-public class RecruitmentPage {
+@AttributeOverrides({
+        @AttributeOverride(name = "createdDate", column = @Column(name = "createdDate")),
+        @AttributeOverride(name = "modifiedDate", column = @Column(name = "modifiedDate"))
+})
+public class RecruitmentPage extends BaseTimeEntity {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "pageId")
-    private Integer pageId; // 스키마와 명칭 통일
+    private Integer pageId;
 
-    // 연관관계 매핑 (선택 사항이나 권장)
-    // 연관관계 없이 가고 싶다면 기존처럼 Integer recruitmentId로 두셔도 무방합니다.
     @OneToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "recruitmentId", referencedColumnName = "recruitmentId", unique = true)
+    @JoinColumn(name = "recruitmentId", nullable = false)
     private Recruitment recruitment;
 
-    @Column(name = "heroYear", columnDefinition = "CHAR(4)", nullable = false)
+    @Column(name = "heroYear")
     private String heroYear;
 
-    @Column(name = "heroTitle", length = 100, nullable = false)
+    @Column(name = "heroTitle")
     private String heroTitle;
 
-    @Column(name = "heroSubTitle", length = 255)
+    @Column(name = "heroSubTitle")
     private String heroSubTitle;
 
-    @Column(name = "heroBtnText", length = 30)
-    @Builder.Default
-    private String heroBtnText = "신청하기";
+    @Column(name = "heroBtnText")
+    private String heroBtnText;
 
-    @Column(name = "heroBgUrl", columnDefinition = "TEXT")
+    @Column(name = "heroBgUrl")
     private String heroBgUrl;
 
-    @Column(name = "isActive", columnDefinition = "TINYINT(1)")
-    @Builder.Default
-    private Boolean isActive = true;
+    @Column(name = "isActive")
+    private Boolean isActive;
 
-    @Column(name = "updatedBy", length = 15)
+    @Column(name = "updatedBy")
     private String updatedBy;
 
-    // --- 스키마에 새로 추가된 컬럼들 ---
-    @Column(name = "heroImageUrl", length = 255)
-    private String heroImageUrl;
+    // [중요] 내부에서 직접 선언했던 createdDate, modifiedDate 필드를 삭제했습니다.
+    // 대신 상단의 @AttributeOverrides가 부모의 필드를 DB 컬럼 'createdDate', 'modifiedDate'에 매핑합니다.
 
-    @Column(name = "subtitle", length = 255)
-    private String subtitle;
+    @Builder.Default
+    @OneToMany(mappedBy = "recruitmentPage", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<RecruitmentPageIntro> intros = new ArrayList<>();
 
-    @Column(name = "title", length = 255)
-    private String title;
+    @Builder.Default
+    @OneToMany(mappedBy = "recruitmentPage", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<RecruitmentPageFieldCard> cards = new ArrayList<>();
 
-    @Column(name = "year", length = 255)
-    private String year;
-    // ----------------------------
+    @Builder.Default
+    @OneToMany(mappedBy = "recruitmentPage", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<RecruitmentPageGallery> galleries = new ArrayList<>();
 
-    @Column(name = "createdDate", updatable = false)
-    private LocalDateTime createdDate;
-
-    @Column(name = "modifiedDate")
-    private LocalDateTime modifiedDate;
-
-    @PrePersist
-    protected void onCreate() {
-        this.createdDate = LocalDateTime.now();
-        this.modifiedDate = LocalDateTime.now();
-    }
-
-    @PreUpdate
-    protected void onUpdate() {
-        this.modifiedDate = LocalDateTime.now();
-    }
+    @Builder.Default
+    @OneToMany(mappedBy = "recruitmentPage", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<RecruitmentPageContact> contacts = new ArrayList<>();
 }

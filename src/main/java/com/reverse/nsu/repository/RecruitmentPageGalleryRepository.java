@@ -8,14 +8,15 @@ import java.util.List;
 
 public interface RecruitmentPageGalleryRepository extends JpaRepository<RecruitmentPageGallery, Integer> {
 
-    // 1. 페이지 ID로 전체 갤러리 목록 조회 (정렬 순서 반영)
-    List<RecruitmentPageGallery> findAllByPage_PageIdOrderBySortOrderAsc(Integer pageId);
+    // 1. [기존] 페이지 전체 사진 조회
+    List<RecruitmentPageGallery> findAllByRecruitmentPage_PageIdOrderBySortOrderAsc(Integer pageId);
 
-    // 2. 페이지 ID로 '노출 설정된(isVisible=true)' 갤러리만 조회
-    List<RecruitmentPageGallery> findAllByPage_PageIdAndIsVisibleTrueOrderBySortOrderAsc(Integer pageId);
+    // 2. [추가] 특정 태그(분야)별 사진 필터링 조회 (화면정의서 핵심 기능)
+    // 예: tag가 '백엔드'인 사진들만 정렬해서 가져옴
+    List<RecruitmentPageGallery> findAllByRecruitmentPage_PageIdAndTagOrderBySortOrderAsc(Integer pageId, String tag);
 
-    // 3. 페이지 ID로 해당 갤러리 데이터 모두 삭제
+    // 3. [보완] 삭제 메서드에 필요한 어노테이션 추가
     @Modifying
     @Transactional
-    void deleteByPage_PageId(Integer pageId);
+    void deleteByRecruitmentPage_PageId(Integer pageId);
 }

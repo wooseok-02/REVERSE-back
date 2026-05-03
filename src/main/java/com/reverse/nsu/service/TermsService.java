@@ -46,4 +46,10 @@ public class TermsService {
     public void deleteTerms(Integer termsId) {
         termsRepository.deleteById(termsId);
     }
+
+    @Transactional(readOnly = true)
+    public Terms getTermsById(Integer id) {
+        return termsRepository.findById(id)
+                .orElseThrow(() -> new IllegalArgumentException("해당 약관을 찾을 수 없습니다. ID: " + id));
+    }
 }
