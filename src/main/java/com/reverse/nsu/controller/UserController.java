@@ -48,7 +48,7 @@ public class UserController {
             ));
         }
     }
-
+  
     // 3. 최종 비밀번호 발급
     @PostMapping("/find-password/issue")
     public ResponseEntity<Map<String, Object>> issue(@RequestBody Map<String, String> request) {
