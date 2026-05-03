@@ -3,7 +3,7 @@
 - **Base URL**: `http://localhost:8080`
 - **응답 형식**: JSON (이미지 업로드 응답은 plain text)
 - **작성일**: 2026.04.09
-- **최종 수정일**: 2026.04.15 (일정, 공휴일 섹션 추가 / interviewMemo 필드 제거)
+- **최종 수정일**: 2026.05.03 (공지사항 섹션 추가)
 
 ---
 
@@ -19,6 +19,7 @@
 8. [모집 공고 (Recruitment)](#8-모집-공고-recruitment)
 9. [일정 (Schedule)](#9-일정-schedule)
 10. [공휴일 (Holiday)](#10-공휴일-holiday)
+11. [공지사항 (Notice)](#11-공지사항-notice)
 
 ---
 
@@ -1364,3 +1365,198 @@ Base Path: `/api/holiday`
 ```
 
 > 이미지 URL이 변경된 경우, 기존 R2 이미지는 수정 요청 처리 시 자동으로 삭제된다.
+
+---
+
+## 11. 공지사항 (Notice)
+
+Base Path: `/api/notices` (조회) / `/api/posts/notices` (관리자 등록·수정·삭제)
+
+> 비로그인 사용자는 외부 공개(`isExternal: true`) 공지사항만 조회 가능하다.
+> 로그인 사용자는 내부/외부 모두 조회 가능하다.
+
+---
+
+### POST /api/notices/image
+공지사항 이미지를 Cloudflare R2에 업로드하고 URL을 반환한다.
+반환된 URL을 `POST /api/posts/notices`의 `imageUrls`에 포함하여 사용한다.
+
+**요청** `multipart/form-data`
+
+| 파라미터 | 타입 | 필수 | 설명 |
+|---|---|---|---|
+| `file` | MultipartFile | Y | 업로드할 이미지 파일 |
+
+**응답 `200 OK`** (plain text)
+```
+https://cdn.example.com/notice/uuid-filename.png
+```
+
+---
+
+### GET /api/notices
+공지사항 목록을 조회한다. 6개씩 페이징. 비로그인 시 외부 공개 게시글만 반환.
+
+**Query Parameter**
+
+| 파라미터 | 타입 | 필수 | 설명 |
+|---|---|---|---|
+| `category` | String | N | 카테고리 필터 (`전체` \| `동아리 활동` \| `대외활동`, 기본값: `전체`) |
+| `page` | Integer | N | 페이지 번호 (0부터 시작, 기본값: `0`) |
+
+**응답 `200 OK`**
+```json
+{
+  "status": "success",
+  "message": null,
+  "data": {
+    "content": [
+      {
+        "id": 1,
+        "title": "공지사항 제목",
+        "createdAt": "2026-05-03",
+        "userId": "admin01",
+        "category": "동아리 활동",
+        "isExternal": true
+      }
+    ],
+    "totalPages": 3,
+    "totalElements": 15,
+    "number": 0,
+    "size": 6
+  }
+}
+```
+
+**에러 응답**
+| 상황 | HTTP 상태 |
+|---|---|
+| 서버 오류 | `500` — SERVER_ERROR |
+
+---
+
+### GET /api/notices/{noticeId}
+공지사항 단건을 조회한다. 비로그인 사용자가 내부 공지 접근 시 403 반환.
+
+**Path Variable**
+
+| 파라미터 | 타입 | 설명 |
+|---|---|---|
+| `noticeId` | Integer | 조회할 공지사항 ID |
+
+**응답 `200 OK`**
+```json
+{
+  "status": "success",
+  "message": null,
+  "data": {
+    "id": 1,
+    "title": "공지사항 제목",
+    "content": "공지사항 본문 내용",
+    "createdAt": "2026-05-03",
+    "userId": "admin01",
+    "category": "동아리 활동",
+    "isExternal": true,
+    "imageUrls": [
+      "https://cdn.example.com/notice/uuid-filename.png"
+    ]
+  }
+}
+```
+
+**에러 응답**
+| 상황 | HTTP 상태 |
+|---|---|
+| 비로그인 + 내부 공지 접근 | `403` — FORBIDDEN: 공지사항은 회원가입된 사용자만 접근 가능합니다. |
+| 존재하지 않는 ID | `404` — NOT_FOUND |
+
+---
+
+### POST /api/posts/notices
+공지사항을 등록(`noticeId` 없음) 또는 수정(`noticeId` 있음)한다. 관리자 전용.
+
+**요청 Header**
+
+| 헤더 | 필수 | 설명 |
+|---|---|---|
+| `Authorization` | Y | Bearer 액세스 토큰 |
+
+**요청 Body** `application/json`
+
+| 필드 | 타입 | 필수 | 설명 |
+|---|---|---|---|
+| `noticeId` | Integer | N | 수정 시에만 포함 |
+| `title` | String | Y | 제목 (최대 50자) |
+| `content` | String | Y | 본문 (최대 4000자) |
+| `isPinned` | Boolean | N | 상단 고정 여부 (기본값: `false`) |
+| `isExternal` | Boolean | N | 외부 공개 여부 (기본값: `false`) |
+| `category` | String | N | 카테고리 (`동아리 활동` \| `대외활동`, 기본값: `동아리 활동`) |
+| `imageUrls` | List\<String\> | N | 이미지 URL 목록 (업로드 후 받은 URL) |
+
+```json
+{
+  "title": "공지사항 제목",
+  "content": "공지사항 본문",
+  "isPinned": false,
+  "isExternal": true,
+  "category": "동아리 활동",
+  "imageUrls": [
+    "https://cdn.example.com/notice/uuid-filename.png"
+  ]
+}
+```
+
+**응답 `201 Created`** (등록)
+```json
+{
+  "status": "success",
+  "message": "공지사항이 등록되었습니다.",
+  "data": { "noticeId": 1 }
+}
+```
+
+**응답 `200 OK`** (수정)
+```json
+{
+  "status": "success",
+  "message": "공지사항이 수정되었습니다.",
+  "data": { "noticeId": 1 }
+}
+```
+
+**에러 응답**
+| 상황 | HTTP 상태 |
+|---|---|
+| title 또는 content 누락 | `400` — MISSING_FIELD |
+| 존재하지 않는 noticeId | `404` — NOT_FOUND |
+
+---
+
+### DELETE /api/posts/notices/{noticeId}
+공지사항을 삭제한다. 첨부 이미지(POST_ATTACHED)도 함께 삭제된다. 관리자 전용.
+
+**요청 Header**
+
+| 헤더 | 필수 | 설명 |
+|---|---|---|
+| `Authorization` | Y | Bearer 액세스 토큰 |
+
+**Path Variable**
+
+| 파라미터 | 타입 | 설명 |
+|---|---|---|
+| `noticeId` | Integer | 삭제할 공지사항 ID |
+
+**응답 `200 OK`**
+```json
+{
+  "status": "success",
+  "message": "공지사항이 삭제되었습니다.",
+  "data": { "noticeId": 1 }
+}
+```
+
+**에러 응답**
+| 상황 | HTTP 상태 |
+|---|---|
+| 존재하지 않는 ID | `404` — NOT_FOUND |

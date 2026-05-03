@@ -36,6 +36,12 @@ public class Post {
     @Column(nullable = false)
     private Boolean isPinned = false;
 
+    @Column(nullable = false)
+    private Boolean isExternal = false; // 외부 공개 여부
+
+    @Column(nullable = false, length = 20)
+    private String postCategory = "동아리 활동"; // 동아리 활동 | 대외활동
+
     private LocalDateTime modifiedDate;
 
     // 공지사항 생성
@@ -46,6 +52,8 @@ public class Post {
         post.postTitle = dto.getTitle();
         post.postContents = dto.getContent();
         post.isPinned = dto.getIsPinned() != null ? dto.getIsPinned() : false;
+        post.isExternal = dto.getIsExternal() != null ? dto.getIsExternal() : false;
+        post.postCategory = dto.getCategory() != null ? dto.getCategory() : "동아리 활동";
         return post;
     }
 
@@ -54,5 +62,8 @@ public class Post {
         this.postTitle = dto.getTitle();
         this.postContents = dto.getContent();
         if (dto.getIsPinned() != null) this.isPinned = dto.getIsPinned();
+        if (dto.getIsExternal() != null) this.isExternal = dto.getIsExternal();
+        if (dto.getCategory() != null) this.postCategory = dto.getCategory();
+        this.modifiedDate = LocalDateTime.now();
     }
 }
