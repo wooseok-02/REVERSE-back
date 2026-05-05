@@ -46,21 +46,27 @@ public class Recruitment {
     @Column(name = "modifiedDate", nullable = false)
     private LocalDateTime modifiedDate;
 
-    // --- 연관 관계 매핑 (조회 편의성을 위해 추가) ---
-
-    // 1:1 관계 - 모집 상세 페이지
+    // --- 연관 관계 매핑 ---
     @OneToOne(mappedBy = "recruitment", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
     private RecruitmentPage recruitmentPage;
 
-    // 1:N 관계 - 지원서 목록
     @OneToMany(mappedBy = "recruitment", cascade = CascadeType.ALL, orphanRemoval = true)
     @Builder.Default
     private List<RecruitmentApplication> applications = new ArrayList<>();
 
-    // 1:N 관계 - 면접 슬롯 목록
     @OneToMany(mappedBy = "recruitment", cascade = CascadeType.ALL, orphanRemoval = true)
     @Builder.Default
     private List<RecruitmentInterviewSlot> interviewSlots = new ArrayList<>();
+
+    // ⭐ [추가] 공고 수정을 위한 비즈니스 메서드
+    public void update(String title, String description, LocalDateTime applyStartDate, LocalDateTime applyEndDate, String updatedBy) {
+        this.title = title;
+        this.description = description;
+        this.applyStartDate = applyStartDate;
+        this.applyEndDate = applyEndDate;
+        this.updatedBy = updatedBy;
+        // modifiedDate는 @PreUpdate에 의해 자동으로 갱신됩니다.
+    }
 
     @PrePersist
     protected void onCreate() {
