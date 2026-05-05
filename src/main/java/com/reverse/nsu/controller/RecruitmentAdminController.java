@@ -3,8 +3,8 @@ package com.reverse.nsu.controller;
 import com.reverse.nsu.entity.Recruitment;
 import com.reverse.nsu.dto.RecruitmentResponseDto;
 import com.reverse.nsu.service.RecruitmentAdminService;
+import com.reverse.nsu.service.RecruitmentNotifyService;
 import com.reverse.nsu.service.RecruitmentService;
-import com.reverse.nsu.repository.RecruitmentRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -14,7 +14,6 @@ import org.springframework.http.MediaType;
 
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
-import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
 
@@ -26,7 +25,7 @@ public class RecruitmentAdminController {
 
     private final RecruitmentService recruitmentService;
     private final RecruitmentAdminService recruitmentAdminService;
-    private final RecruitmentRepository recruitmentRepository;
+    private final RecruitmentNotifyService notifyService;
 
     /**
      * 1. 특정 공고의 지원자 목록 조회
@@ -62,51 +61,49 @@ public class RecruitmentAdminController {
     }
 
     /**
-     * 3. 공고 생성
-     * [수정 내용]:
-     * - JSON에서 adminId를 받아와서 updatedBy에 동적으로 설정
-     * - LocalDateTime 파싱 적용
+     * 3. 공고 생성 (상세 페이지 자동 생성 포함)
+     * 서비스 계층에서 Recruitment와 RecruitmentPage를 한 번에 생성합니다.
      */
     @PostMapping
     public ResponseEntity<?> create(@RequestBody Map<String, Object> request) {
-        // 1. 권한 체크 (roleId 기반)
+        // 1. 권한 체크
         Integer roleId = (Integer) request.get("roleId");
         recruitmentAdminService.validateAdminRole(roleId);
 
-        // 2. 관리자 ID 추출 (DB의 USERS 테이블에 존재하는 userId 문자열이어야 함)
-        String adminId = (String) request.get("adminId");
+        // 2. 서비스 호출 (공고 + 상세페이지 동시 생성)
+        Recruitment recruitment = recruitmentAdminService.createRecruitment(request);
 
-        // 3. 데이터 빌드 및 저장
-        Recruitment recruitment = Recruitment.builder()
-                .title((String) request.get("title"))
-                .description((String) request.get("description"))
-                .applyStartDate(LocalDateTime.parse((String) request.get("applyStartDate")))
-                .applyEndDate(LocalDateTime.parse((String) request.get("applyEndDate")))
-                .isActive(true)
-                .updatedBy(adminId) // [해결] 이제 admin01, superadmin 모두 대응 가능!
-                .build();
-
-        recruitmentRepository.save(recruitment);
+        // 3. 알림 서비스 호출
+        notifyService.notifySubscribers(recruitment.getTitle());
 
         return ResponseEntity.ok(Map.of(
                 "status", "success",
-                "message", "공고 등록 완료",
-                "recruitmentId", recruitment.getRecruitmentId()
+                "message", "공고 및 상세 페이지 등록 완료",
+                "recruitmentId", recruitment.getRecruitmentId(),
+                "pageId", recruitment.getRecruitmentPage().getPageId()
         ));
     }
 
     /**
-     * 4. 공고 상세 페이지 내용 저장/수정
+     * 4. 공고 내용 수정
      */
-    @PostMapping("/page/{id}")
-    public ResponseEntity<?> savePage(
+    @PutMapping("/{id}")
+    public ResponseEntity<?> update(
             @PathVariable Integer id,
             @RequestBody Map<String, Object> request) {
 
+        // 1. 권한 체크
         Integer roleId = (Integer) request.get("roleId");
         recruitmentAdminService.validateAdminRole(roleId);
 
-        return ResponseEntity.ok(Map.of("status", "success", "message", "상세 페이지 저장 완료"));
+        // 2. 서비스 호출 (수정 로직 위임)
+        recruitmentAdminService.updateRecruitment(id, request);
+
+        return ResponseEntity.ok(Map.of(
+                "status", "success",
+                "message", "공고 수정 완료",
+                "recruitmentId", id
+        ));
     }
 
     /**
@@ -138,6 +135,8 @@ public class RecruitmentAdminController {
     public ResponseEntity<?> setInterview(@RequestBody Map<String, Object> request) {
         Integer roleId = (Integer) request.get("roleId");
         recruitmentAdminService.validateAdminRole(roleId);
+
+        // 필요 시 recruitmentAdminService.setInterviewSchedule() 호출 로직 추가 가능
 
         return ResponseEntity.ok(Map.of("status", "success", "message", "면접 배정 완료"));
     }

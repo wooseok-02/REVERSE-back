@@ -12,7 +12,7 @@ import java.util.Map;
 @RestController
 @RequestMapping("/api/terms")
 @RequiredArgsConstructor
-@CrossOrigin(origins = "*") // 통합된 위치에 설정
+@CrossOrigin(originPatterns = "*", allowCredentials = "true")// 통합된 위치에 설정
 public class TermsController {
 
     private final TermsService termsService;

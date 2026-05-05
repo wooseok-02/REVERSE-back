@@ -2,11 +2,10 @@ package com.reverse.nsu.service;
 
 import com.reverse.nsu.dto.ApplicationInterviewScheduleRequestDto;
 import com.reverse.nsu.dto.RecruitmentResponseDto;
-import com.reverse.nsu.entity.ApplicationInterviewSchedule;
-import com.reverse.nsu.entity.RecruitmentApplication;
-import com.reverse.nsu.entity.RecruitmentInterviewSlot;
+import com.reverse.nsu.entity.*;
 import com.reverse.nsu.repository.RecruitmentApplicationRepository;
 import com.reverse.nsu.repository.RecruitmentInterviewSlotRepository;
+import com.reverse.nsu.repository.RecruitmentRepository; // 추가
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -17,13 +16,16 @@ import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 
+import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
 public class RecruitmentAdminService {
 
+    private final RecruitmentRepository recruitmentRepository; // 추가
     private final RecruitmentApplicationRepository applicationRepository;
     private final RecruitmentInterviewSlotRepository interviewSlotRepository;
 
@@ -34,6 +36,60 @@ public class RecruitmentAdminService {
         if (roleId == null || roleId > 2) {
             throw new RuntimeException("접근 권한이 없습니다. 관리자 권한이 필요합니다.");
         }
+    }
+
+    /**
+     * [신규] 공고 및 상세 페이지 동시 생성
+     * 공고 생성 시 상세 페이지가 자동으로 생성되지 않아 발생하던 에러를 방지합니다.
+     */
+    @Transactional
+    public Recruitment createRecruitment(Map<String, Object> request) {
+        String adminId = (String) request.get("adminId");
+
+        // 1. 상세 페이지(RecruitmentPage) 객체 생성 (기본값 설정)
+        RecruitmentPage page = RecruitmentPage.builder()
+                .heroTitle((String) request.get("title"))
+                .heroSubTitle("동아리 상세 정보")
+                .heroBtnText("지원하기")       // 이전 에러 해결
+                .heroYear("2026")            // 이번 에러 해결 (현재 연도 등)
+                .heroBgUrl("")
+                .updatedBy(adminId)
+                .isActive(true)
+                .build();
+
+        // 2. 공고(Recruitment) 객체 생성
+        Recruitment recruitment = Recruitment.builder()
+                .title((String) request.get("title"))
+                .description((String) request.get("description"))
+                .applyStartDate(LocalDateTime.parse((String) request.get("applyStartDate")))
+                .applyEndDate(LocalDateTime.parse((String) request.get("applyEndDate")))
+                .updatedBy(adminId)
+                .isActive(true)
+                .build();
+
+        // 3. 양방향 연관 관계 설정 (중요!)
+        recruitment.setRecruitmentPage(page);
+        page.setRecruitment(recruitment);
+
+        // 4. 저장 (CascadeType.ALL로 인해 page도 함께 저장됨)
+        return recruitmentRepository.save(recruitment);
+    }
+
+    /**
+     * [신규] 공고 수정 로직
+     */
+    @Transactional
+    public void updateRecruitment(Integer id, Map<String, Object> request) {
+        Recruitment recruitment = recruitmentRepository.findById(id)
+                .orElseThrow(() -> new IllegalArgumentException("해당 공고가 존재하지 않습니다. ID: " + id));
+
+        recruitment.update(
+                (String) request.get("title"),
+                (String) request.get("description"),
+                LocalDateTime.parse((String) request.get("applyStartDate")),
+                LocalDateTime.parse((String) request.get("applyEndDate")),
+                (String) request.get("adminId")
+        );
     }
 
     /**
@@ -53,7 +109,7 @@ public class RecruitmentAdminService {
     }
 
     /**
-     * 2. 지원서 상태 변경 (합격/불합격 처리)
+     * 2. 지원서 상태 변경
      */
     @Transactional
     public void updateApplicationStatus(Integer applicationId, String newStatus) {
@@ -123,7 +179,6 @@ public class RecruitmentAdminService {
                 row.createCell(3).setCellValue(app.getDepartment());
                 row.createCell(4).setCellValue(app.getGrade());
                 row.createCell(5).setCellValue(app.getStatus());
-                // [수정] BaseTimeEntity의 getCreatedAt() 호출
                 row.createCell(6).setCellValue(app.getCreatedAt() != null ? app.getCreatedAt().toString() : "");
             }
 
@@ -132,9 +187,6 @@ public class RecruitmentAdminService {
         }
     }
 
-    /**
-     * [헬퍼] 엔티티를 DTO 내부 클래스로 변환
-     */
     private RecruitmentResponseDto.ApplicationDetails convertToApplicationDetails(RecruitmentApplication application) {
         return RecruitmentResponseDto.ApplicationDetails.builder()
                 .applicationId(application.getApplicationId())
@@ -147,7 +199,6 @@ public class RecruitmentAdminService {
                 .email(application.getEmail())
                 .termsAgreed(application.getTermsAgreed())
                 .status(application.getStatus())
-                // [수정] BaseTimeEntity 필드명(createdAt, updatedAt) 호출
                 .createdDate(application.getCreatedAt())
                 .modifiedDate(application.getUpdatedAt())
                 .build();
