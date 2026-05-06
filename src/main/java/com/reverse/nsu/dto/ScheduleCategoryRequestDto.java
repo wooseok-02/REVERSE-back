@@ -1,10 +1,10 @@
 package com.reverse.nsu.dto;
 
 import com.reverse.nsu.entity.ScheduleCategory;
-import lombok.Getter;
-import lombok.Setter;
+import lombok.*;
 
 @Getter @Setter
+@AllArgsConstructor @NoArgsConstructor
 public class ScheduleCategoryRequestDto {
     private String categoryName;
     private String colorCode;

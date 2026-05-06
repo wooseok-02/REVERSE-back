@@ -1,10 +1,9 @@
 package com.reverse.nsu.dto;
 
-import lombok.Getter;
-import lombok.NoArgsConstructor;
+import lombok.*;
 
 @Getter
-@NoArgsConstructor
+@AllArgsConstructor @NoArgsConstructor
 public class ClubProjectRequestDto {
 
     private String projectName;     // 프로젝트 이름

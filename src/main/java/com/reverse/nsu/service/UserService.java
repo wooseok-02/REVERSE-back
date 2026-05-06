@@ -1,6 +1,5 @@
 package com.reverse.nsu.service;
 
-import com.reverse.nsu.dto.MeResponseDto;
 import com.reverse.nsu.entity.Users;
 import com.reverse.nsu.repository.UsersRepository;
 import jakarta.mail.internet.MimeMessage;
