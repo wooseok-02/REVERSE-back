@@ -1,123 +1,300 @@
 package com.reverse.nsu.service;
 
-import com.reverse.nsu.dto.RecruitmentRequestDto;
-import com.reverse.nsu.dto.RecruitmentResponseDto;
-import com.reverse.nsu.dto.RecruitmentStatusRequestDto;
-import com.reverse.nsu.entity.Recruitment;
-import com.reverse.nsu.entity.RecruitmentNotifyEmail;
-import com.reverse.nsu.entity.Users; // 추가
-import com.reverse.nsu.repository.RecruitmentNotifyEmailRepository;
-import com.reverse.nsu.repository.RecruitmentRepository;
-import com.reverse.nsu.repository.UserRepository; // 추가
+import com.reverse.nsu.dto.*;
+import com.reverse.nsu.entity.*;
+import com.reverse.nsu.repository.*;
 import lombok.RequiredArgsConstructor;
-import org.springframework.mail.SimpleMailMessage;
-import org.springframework.mail.javamail.JavaMailSender;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.nio.file.AccessDeniedException; // 예외 추가
-import java.util.stream.Collectors;
+import java.time.LocalDateTime;
 import java.util.List;
+import java.util.stream.Collectors;
 
 @Service
+@Slf4j
 @RequiredArgsConstructor
 public class RecruitmentService {
 
     private final RecruitmentRepository recruitmentRepository;
-    private final RecruitmentNotifyEmailRepository notifyEmailRepository;
-    private final UserRepository userRepository; // 1. 주입 추가
-    private final JavaMailSender mailSender;
+    private final RecruitmentPageRepository pageRepository;
+    private final RecruitmentInterviewSlotRepository slotRepository;
+    private final RecruitmentPageIntroRepository introRepository;
+    private final RecruitmentPageFieldCardRepository cardRepository;
+    private final RecruitmentPageGalleryRepository galleryRepository;
+    private final RecruitmentPageContactRepository contactRepository;
+    private final RecruitmentApplicationRepository applicationRepository;
+    private final RecruitmentNotifyService notifyService;
+
+    /**
+     * 지원서 제출
+     */
+    @Transactional
+    public void submitApplication(ApplicationRequestDto dto) {
+        Recruitment recruit = recruitmentRepository.findById(dto.getRecruitmentId())
+                .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 공고입니다."));
+
+        LocalDateTime now = LocalDateTime.now();
+        boolean isApplyPeriod = (recruit.getApplyStartDate() != null && recruit.getApplyEndDate() != null) &&
+                (now.isAfter(recruit.getApplyStartDate()) && now.isBefore(recruit.getApplyEndDate()));
+
+        if (!isApplyPeriod) {
+            throw new IllegalStateException("지금은 신청 기간이 아닙니다.");
+        }
+
+        if (applicationRepository.existsByRecruitment_RecruitmentIdAndStudentNumber(
+                dto.getRecruitmentId(), dto.getStudentNumber())) {
+            throw new IllegalStateException("이미 신청하셨습니다.");
+        }
+
+        // [수정 포인트] DTO 필드명 변경 및 DB에 없는 portfolioUrl 제거
+        RecruitmentApplication application = RecruitmentApplication.builder()
+                .recruitment(recruit)
+                .applicantName(dto.getApplicantName())
+                .studentNumber(dto.getStudentNumber())
+                .department(dto.getDepartment()) // userMajor -> department
+                .grade(dto.getGrade())
+                .phoneNumber(dto.getPhoneNumber()) // userPhone -> phoneNumber
+                .email(dto.getEmail())             // userEmail -> email
+                // .portfolioUrl(dto.getPortfolioUrl()) // DB에 없으므로 삭제 (방법 1 적용)
+                .termsAgreed(dto.getTermsAgreed() ? 1 : 0) // Boolean -> Integer 변환 필요 시 처리
+                .status("PENDING")
+                .build();
+
+        applicationRepository.save(application);
+        // [수정 포인트] 로그 메시지의 getter 메서드명 수정
+        log.info(">>>> [지원서 제출 완료] 성함: {}, 학번: {}", dto.getApplicantName(), dto.getStudentNumber());
+    }
+
+    /**
+     * 1. 공고 상세 페이지 조회
+     */
+    @Transactional(readOnly = true)
+    public RecruitmentResponseDto getRecruitPage(Integer recruitmentId) {
+        Recruitment recruit = recruitmentRepository.findById(recruitmentId)
+                .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 공고입니다."));
+
+        LocalDateTime now = LocalDateTime.now();
+        boolean isApplyPeriod = (recruit.getApplyStartDate() != null && recruit.getApplyEndDate() != null) &&
+                (now.isAfter(recruit.getApplyStartDate()) && now.isBefore(recruit.getApplyEndDate()));
+
+        RecruitmentPage page = pageRepository.findByRecruitment_RecruitmentId(recruitmentId).orElse(null);
+
+        if (page == null) {
+            return RecruitmentResponseDto.builder()
+                    .recruitmentId(recruit.getRecruitmentId())
+                    .title(recruit.getTitle())
+                    .applyStartDate(recruit.getApplyStartDate())
+                    .applyEndDate(recruit.getApplyEndDate())
+                    .isApplyPeriod(isApplyPeriod)
+                    .build();
+        }
+
+        Integer pageId = page.getPageId();
+
+        RecruitmentResponseDto.PageDetails pageDetails = RecruitmentResponseDto.PageDetails.builder()
+                .year(page.getHeroYear())
+                .title(page.getHeroTitle())
+                .subtitle(page.getHeroSubTitle())
+                .heroBgUrl(page.getHeroBgUrl())
+                .heroBtnText(isApplyPeriod ? "신청하기" : "지금은 신청 기간이 아닙니다")
+                .intros(introRepository.findAllByRecruitmentPage_PageIdOrderBySortOrderAsc(pageId).stream()
+                        .map(i -> RecruitmentResponseDto.IntroDetails.builder()
+                                .contents(i.getContents())
+                                .sortOrder(i.getSortOrder())
+                                .build()).collect(Collectors.toList()))
+                .cards(cardRepository.findAllByRecruitmentPage_PageIdOrderBySortOrderAsc(pageId).stream()
+                        .map(c -> RecruitmentResponseDto.CardDetails.builder()
+                                .applyField(c.getApplyField())
+                                .title(c.getCardTitle())
+                                .subTitle(c.getCardSubTitle())
+                                .desc(c.getCardDesc())
+                                .imageUrl(c.getImageUrl())
+                                .build()).collect(Collectors.toList()))
+                .galleries(galleryRepository.findAllByRecruitmentPage_PageIdOrderBySortOrderAsc(pageId).stream()
+                        .map(g -> RecruitmentResponseDto.GalleryDetails.builder()
+                                .imageUrl(g.getImageUrl())
+                                .imageDesc(g.getImageDesc())
+                                .tag(g.getTag())
+                                .build()).collect(Collectors.toList()))
+                .contacts(contactRepository.findAllByRecruitmentPage_PageIdOrderBySortOrderAsc(pageId).stream()
+                        .map(ct -> RecruitmentResponseDto.ContactDetails.builder()
+                                .type(ct.getContactType())
+                                .label(ct.getLabel())
+                                .value(ct.getValue())
+                                .subValue(ct.getSubValue())
+                                .build()).collect(Collectors.toList()))
+                .interviewSlots(slotRepository.findAllByRecruitment_RecruitmentId(recruitmentId).stream()
+                        .map(s -> RecruitmentResponseDto.SlotDetails.builder()
+                                .slotId(s.getSlotId())
+                                .date(s.getInterviewDate().toString())
+                                .time(s.getStartTime() != null ? s.getStartTime().toString() : "시간 미정")
+                                .isAvailable(s.getIsActive())
+                                .build()).collect(Collectors.toList()))
+                .build();
+
+        return RecruitmentResponseDto.builder()
+                .recruitmentId(recruit.getRecruitmentId())
+                .title(recruit.getTitle())
+                .applyStartDate(recruit.getApplyStartDate())
+                .applyEndDate(recruit.getApplyEndDate())
+                .isApplyPeriod(isApplyPeriod)
+                .page(pageDetails)
+                .build();
+    }
+
+    // ... (이하 동일한 로직은 유지하되 빌더/메서드 호출 시 필드명 주의)
 
     @Transactional(readOnly = true)
     public List<RecruitmentResponseDto> getAll() {
         return recruitmentRepository.findAll().stream()
-                .map(RecruitmentResponseDto::from) // DTO의 from 메서드 사용
+                .map(r -> RecruitmentResponseDto.builder()
+                        .recruitmentId(r.getRecruitmentId())
+                        .title(r.getTitle())
+                        .applyStartDate(r.getApplyStartDate())
+                        .applyEndDate(r.getApplyEndDate())
+                        .build())
                 .collect(Collectors.toList());
     }
 
-    // 2. 특정 ID 모집 공고 조회
-    @Transactional(readOnly = true)
-    public RecruitmentResponseDto getById(Integer id) {
-        Recruitment recruitment = recruitmentRepository.findById(id)
-                .orElseThrow(() -> new IllegalArgumentException("해당 공고가 없습니다. id=" + id));
-        return RecruitmentResponseDto.from(recruitment);
-    }
-
     @Transactional
-    public RecruitmentResponseDto save(RecruitmentRequestDto dto) {
-        // 1. 공고 저장
-        Recruitment recruitment = recruitmentRepository.save(dto.toEntity());
+    public RecruitmentResponseDto save(RecruitmentRequestDto dto, String adminId) {
+        Recruitment recruitment = dto.toEntity();
+        recruitment.setUpdatedBy(adminId);
+        recruitment.setIsActive(true);
 
-        // 2. 알림 구독자 전원 조회
-        List<RecruitmentNotifyEmail> subscribers = notifyEmailRepository.findAll();
+        Recruitment savedRecruit = recruitmentRepository.save(recruitment);
 
-        // 3. 메일 발송 로직
-        for (RecruitmentNotifyEmail subscriber : subscribers) {
-            String targetEmail = subscriber.getEmail();
-
-            if (targetEmail == null || !targetEmail.contains("@")) {
-                System.out.println("유효하지 않은 이메일 건너뜀: " + targetEmail);
-                continue;
-            }
-
-            try {
-                SimpleMailMessage message = new SimpleMailMessage();
-                message.setFrom("reverse.nsu@gmail.com");
-                message.setTo(subscriber.getEmail());
-                message.setSubject("[REVERSE] " + recruitment.getTitle() + " 공고가 등록되었습니다!");
-                message.setText("안녕하세요. REVERSE입니다.\n\n새로운 모집 공고가 등록되었습니다.\n"
-                        + "제목: " + recruitment.getTitle() + "\n"
-                        + "지금 바로 홈페이지에서 확인해보세요!");
-                mailSender.send(message);
-
-            } catch (Exception e) {
-                System.out.println("메일 발송 실패: " + subscriber.getEmail());
-                e.printStackTrace();
-            }
+        if (notifyService != null) {
+            notifyService.notifySubscribers(savedRecruit.getTitle());
         }
+        log.info(">>>> [공고 생성] 제목: {}, 작성자: {}", savedRecruit.getTitle(), adminId);
 
-        return RecruitmentResponseDto.from(recruitment);
+        return RecruitmentResponseDto.builder()
+                .recruitmentId(savedRecruit.getRecruitmentId())
+                .title(savedRecruit.getTitle())
+                .applyStartDate(savedRecruit.getApplyStartDate())
+                .applyEndDate(savedRecruit.getApplyEndDate())
+                .build();
     }
 
-
-    // 수정
-    @Transactional
-    public RecruitmentResponseDto update(Integer id, RecruitmentRequestDto dto) {
-        Recruitment recruitment = recruitmentRepository.findById(id)
-                .orElseThrow(() -> new IllegalArgumentException("해당 공고가 없습니다. id=" + id));
-
-        // Entity의 update 메서드 인자 확인 필요 (title, description)
-        recruitment.update(dto.getTitle(), dto.getDescription());
-
-        return RecruitmentResponseDto.from(recruitment);
-    }
-
-    // 삭제
     @Transactional
     public void delete(Integer id) {
         Recruitment recruitment = recruitmentRepository.findById(id)
-                .orElseThrow(() -> new IllegalArgumentException("해당 공고가 없습니다. id=" + id));
+                .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 공고입니다. ID: " + id));
         recruitmentRepository.delete(recruitment);
+        log.info(">>>> [공고 삭제 완료] ID: {}", id);
     }
 
-    // 관리자 모집 공고 상태 및 노출 여부 변경
     @Transactional
-    public RecruitmentResponseDto updateStatus(Integer id, Integer roleId, RecruitmentStatusRequestDto dto) {
+    public void createOrUpdatePage(Integer recruitId, RecruitmentResponseDto.PageDetails dto, String adminId) {
+        Recruitment recruit = recruitmentRepository.findById(recruitId)
+                .orElseThrow(() -> new IllegalArgumentException("공고를 찾을 수 없습니다."));
 
-        // 1. roleId가 1(관리자)인지 확인
-        if (roleId == null || roleId != 1) {
-            throw new RuntimeException("관리자 권한이 없습니다.");
+        RecruitmentPage page = pageRepository.findByRecruitment_RecruitmentId(recruitId)
+                .orElseGet(() -> RecruitmentPage.builder().recruitment(recruit).build());
+
+        page.setHeroYear(dto.getYear());
+        page.setHeroTitle(dto.getTitle());
+        page.setHeroSubTitle(dto.getSubtitle());
+        page.setHeroBgUrl(dto.getHeroBgUrl());
+        page.setUpdatedBy(adminId);
+        page.setIsActive(true);
+
+        RecruitmentPage savedPage = pageRepository.save(page);
+
+        clearSubData(savedPage.getPageId());
+
+        if (dto.getIntros() != null) {
+            introRepository.saveAll(dto.getIntros().stream()
+                    .map(i -> RecruitmentPageIntro.builder()
+                            .recruitmentPage(savedPage)
+                            .contents(i.getContents())
+                            .sortOrder(i.getSortOrder())
+                            .updatedBy(adminId)
+                            .build()).collect(Collectors.toList()));
         }
 
-        // 2. 공고 조회 (파라미터 id 사용)
-        Recruitment recruitment = recruitmentRepository.findById(id)
-                .orElseThrow(() -> new IllegalArgumentException("해당 공고가 없습니다. id=" + id));
+        if (dto.getCards() != null) {
+            cardRepository.saveAll(dto.getCards().stream()
+                    .map(c -> RecruitmentPageFieldCard.builder()
+                            .recruitmentPage(savedPage)
+                            .applyField(c.getApplyField())
+                            .cardTitle(c.getTitle())
+                            .cardSubTitle(c.getSubTitle())
+                            .cardDesc(c.getDesc())
+                            .imageUrl(c.getImageUrl())
+                            .updatedBy(adminId)
+                            .build()).collect(Collectors.toList()));
+        }
 
-        // 3. isActive(노출 여부) 변경
-        // DTO에 isActive 필드가 있는지, Getter 이름이 getIsActive인지 확인하세요!
-        recruitment.setIsActive(dto.getIsActive());
+        if (dto.getGalleries() != null) {
+            galleryRepository.saveAll(dto.getGalleries().stream()
+                    .map(g -> RecruitmentPageGallery.builder()
+                            .recruitmentPage(savedPage)
+                            .imageUrl(g.getImageUrl())
+                            .imageDesc(g.getImageDesc())
+                            .tag(g.getTag())
+                            .updatedBy(adminId)
+                            .build()).collect(Collectors.toList()));
+        }
 
-        // 4. 결과를 반환하고 싶다면 return 타입을 맞춰줍니다.
-        return RecruitmentResponseDto.from(recruitment);
+        if (dto.getContacts() != null) {
+            contactRepository.saveAll(dto.getContacts().stream()
+                    .map(ct -> RecruitmentPageContact.builder()
+                            .recruitmentPage(savedPage)
+                            .contactType(ct.getType())
+                            .label(ct.getLabel())
+                            .value(ct.getValue())
+                            .subValue(ct.getSubValue())
+                            .updatedBy(adminId)
+                            .build()).collect(Collectors.toList()));
+        }
+    }
+
+    private void clearSubData(Integer pageId) {
+        introRepository.deleteByRecruitmentPage_PageId(pageId);
+        cardRepository.deleteByRecruitmentPage_PageId(pageId);
+        galleryRepository.deleteByRecruitmentPage_PageId(pageId);
+        contactRepository.deleteByRecruitmentPage_PageId(pageId);
+    }
+
+    @Transactional(readOnly = true)
+    public boolean checkApplyPeriod(Integer recruitmentId) {
+        Recruitment recruit = recruitmentRepository.findById(recruitmentId)
+                .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 공고입니다."));
+        LocalDateTime now = LocalDateTime.now();
+        return (recruit.getApplyStartDate() != null && recruit.getApplyEndDate() != null) &&
+                (now.isAfter(recruit.getApplyStartDate()) && now.isBefore(recruit.getApplyEndDate()));
+    }
+
+    @Transactional(readOnly = true)
+    public Integer getPageIdByRecruitmentId(Integer recruitmentId) {
+        return recruitmentRepository.findById(recruitmentId)
+                .map(recruit -> {
+                    if (recruit.getRecruitmentPage() == null) {
+                        throw new IllegalArgumentException("해당 공고에 연결된 상세 페이지가 없습니다.");
+                    }
+                    return recruit.getRecruitmentPage().getPageId();
+                })
+                .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 공고입니다. ID: " + recruitmentId));
+    }
+
+    @Transactional(readOnly = true)
+    public List<RecruitmentResponseDto.GalleryDetails> getGalleriesByTag(Integer pageId, String tag) {
+        List<RecruitmentPageGallery> galleries;
+        if (tag == null || tag.trim().isEmpty() || tag.equalsIgnoreCase("all")) {
+            galleries = galleryRepository.findAllByRecruitmentPage_PageIdOrderBySortOrderAsc(pageId);
+        } else {
+            galleries = galleryRepository.findAllByRecruitmentPage_PageIdAndTagOrderBySortOrderAsc(pageId, tag);
+        }
+        return galleries.stream()
+                .map(g -> RecruitmentResponseDto.GalleryDetails.builder()
+                        .imageUrl(g.getImageUrl())
+                        .imageDesc(g.getImageDesc())
+                        .tag(g.getTag())
+                        .build())
+                .collect(Collectors.toList());
     }
 }
