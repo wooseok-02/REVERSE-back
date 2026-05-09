@@ -64,4 +64,39 @@ public class UserController {
             ));
         }
     }
+
+    // ─── 아이디 찾기 ───────────────────────────────────────────────
+
+    // 1. 인증번호 발송
+    @PostMapping("/find-username/send-code")
+    public ResponseEntity<Map<String, Object>> sendFindUsernameCode(@RequestBody Map<String, String> request) {
+        try {
+            userService.sendFindUsernameCode(request.get("userName"), request.get("email"));
+            return ResponseEntity.ok(Map.of("message", "인증번호가 발송되었습니다."));
+        } catch (RuntimeException e) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(Map.of(
+                    "status", 400,
+                    "error", "Bad Request",
+                    "message", e.getMessage()
+            ));
+        }
+    }
+
+    // 2. 인증번호 확인 → 아이디 반환
+    @PostMapping("/find-username/verify")
+    public ResponseEntity<Map<String, Object>> findUsername(@RequestBody Map<String, String> request) {
+        try {
+            String userId = userService.findUsernameByCode(request.get("email"), request.get("authCode"));
+            return ResponseEntity.ok(Map.of(
+                    "message", "아이디 찾기에 성공했습니다.",
+                    "userId", userId
+            ));
+        } catch (RuntimeException e) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(Map.of(
+                    "status", 400,
+                    "error", "Bad Request",
+                    "message", e.getMessage()
+            ));
+        }
+    }
 }

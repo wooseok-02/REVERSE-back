@@ -10,6 +10,7 @@ import org.springframework.mail.javamail.MimeMessageHelper;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import com.reverse.nsu.dto.MeResponseDto;
 
 import java.util.Map;
 import java.util.UUID;
@@ -26,6 +27,9 @@ public class UserService {
 
     private final Map<String, String> verificationStorage = new ConcurrentHashMap<>();
     private final Map<String, Boolean> verifiedUsers = new ConcurrentHashMap<>();
+
+    // 아이디 찾기용 인증 저장소 (key: email, value: authCode)
+    private final Map<String, String> findUsernameVerificationStorage = new ConcurrentHashMap<>();
 
     @Transactional(readOnly = true)
     public MeResponseDto getMe(String userId) {
@@ -73,6 +77,34 @@ public class UserService {
 
         verifiedUsers.remove(email);
         sendMail(email, "임시 비밀번호가 발급되었습니다.\n임시 비밀번호: " + tempPassword + "\n로그인 후 반드시 비밀번호를 변경해주세요.", "[REVERSE] 임시 비밀번호 발급 안내");
+    }
+
+    @Transactional(readOnly = true)
+    public void sendFindUsernameCode(String userName, String email) {
+        usersRepository.findByUserNameAndUserEmail(userName, email)
+                .orElseThrow(() -> new RuntimeException("해당 이메일로 가입된 아이디가 없습니다."));
+
+        String authCode = String.valueOf((int)(Math.random() * 899999) + 100000);
+        findUsernameVerificationStorage.put(email, authCode);
+        sendMail(email, "이메일 인증 번호입니다.\n인증번호: " + authCode, "[REVERSE] 아이디 찾기 인증번호");
+    }
+
+    @Transactional(readOnly = true)
+    public String findUsernameByCode(String email, String inputCode) {
+        String savedCode = findUsernameVerificationStorage.get(email);
+
+        if (savedCode == null) {
+            throw new RuntimeException("유효한 인증 정보가 없거나 시간이 만료되었습니다.");
+        }
+        if (!savedCode.equals(inputCode)) {
+            throw new RuntimeException("인증코드가 일치하지 않습니다.");
+        }
+
+        Users user = usersRepository.findByUserEmail(email)
+                .orElseThrow(() -> new RuntimeException("해당 이메일로 가입된 아이디가 없습니다."));
+
+        findUsernameVerificationStorage.remove(email);
+        return user.getUserId();
     }
 
     private void sendMail(String toEmail, String content, String subject) {
