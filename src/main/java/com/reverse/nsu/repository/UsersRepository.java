@@ -14,4 +14,8 @@ public interface UsersRepository extends JpaRepository<Users, String> {
      * DB의 userEmail 컬럼과 매칭됩니다.
      */
     Optional<Users> findByUserIdAndUserEmail(String userId, String userEmail);
+
+    Optional<Users> findByUserNameAndUserEmail(String userName, String userEmail);
+
+    Optional<Users> findByUserEmail(String userEmail);
 }

@@ -1,16 +1,17 @@
 package com.reverse.nsu.controller;
 
-import com.reverse.nsu.entity.Recruitment;
+import com.reverse.nsu.dto.RecruitmentRequestDto;
 import com.reverse.nsu.dto.RecruitmentResponseDto;
+import com.reverse.nsu.entity.Recruitment;
 import com.reverse.nsu.service.RecruitmentAdminService;
 import com.reverse.nsu.service.RecruitmentNotifyService;
 import com.reverse.nsu.service.RecruitmentService;
 import lombok.RequiredArgsConstructor;
-import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.*;
 import org.springframework.core.io.InputStreamResource;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.*;
 
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
@@ -62,7 +63,6 @@ public class RecruitmentAdminController {
 
     /**
      * 3. 공고 생성 (상세 페이지 자동 생성 포함)
-     * 서비스 계층에서 Recruitment와 RecruitmentPage를 한 번에 생성합니다.
      */
     @PostMapping
     public ResponseEntity<?> create(@RequestBody Map<String, Object> request) {
@@ -85,7 +85,7 @@ public class RecruitmentAdminController {
     }
 
     /**
-     * 4. 공고 내용 수정
+     * 4. 공고 내용 수정 (기본 정보)
      */
     @PutMapping("/{id}")
     public ResponseEntity<?> update(
@@ -159,5 +159,43 @@ public class RecruitmentAdminController {
                 .headers(headers)
                 .contentType(MediaType.parseMediaType("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"))
                 .body(new InputStreamResource(in));
+    }
+
+    /**
+     * 9. [신규 추가] 상세 페이지 내용 수정 (Hero, Intros, Cards, Galleries, Contacts 통합)
+     */
+    @PatchMapping("/{id}/page")
+    public ResponseEntity<?> updateRecruitmentPage(
+            @PathVariable Integer id,
+            @RequestBody RecruitmentRequestDto.PageUpdate request) {
+
+        // 1. 권한 체크
+        recruitmentAdminService.validateAdminRole(request.getRoleId());
+
+        // 2. 서비스 호출 (상세 페이지 수정 로직)
+        recruitmentAdminService.updateRecruitmentPage(id, request);
+
+        return ResponseEntity.ok(Map.of(
+                "status", "success",
+                "message", "상세 페이지 정보 수정 완료",
+                "recruitmentId", id
+        ));
+    }
+
+    /**
+     * 10. [신규 추가] 면접 일정 슬롯 설정
+     */
+    @PostMapping("/{id}/slots")
+    public ResponseEntity<?> updateInterviewSlots(
+            @PathVariable Integer id,
+            @RequestBody RecruitmentRequestDto.InterviewSlotUpdate request) {
+
+        recruitmentAdminService.validateAdminRole(request.getRoleId());
+        recruitmentAdminService.updateInterviewSlots(id, request);
+
+        return ResponseEntity.ok(Map.of(
+                "status", "success",
+                "message", "면접 날짜 및 정원 설정 완료"
+        ));
     }
 }
