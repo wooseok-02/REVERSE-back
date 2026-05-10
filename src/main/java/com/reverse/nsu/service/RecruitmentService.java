@@ -48,22 +48,19 @@ public class RecruitmentService {
             throw new IllegalStateException("이미 신청하셨습니다.");
         }
 
-        // [수정 포인트] DTO 필드명 변경 및 DB에 없는 portfolioUrl 제거
         RecruitmentApplication application = RecruitmentApplication.builder()
                 .recruitment(recruit)
                 .applicantName(dto.getApplicantName())
                 .studentNumber(dto.getStudentNumber())
-                .department(dto.getDepartment()) // userMajor -> department
+                .department(dto.getDepartment())
                 .grade(dto.getGrade())
-                .phoneNumber(dto.getPhoneNumber()) // userPhone -> phoneNumber
-                .email(dto.getEmail())             // userEmail -> email
-                // .portfolioUrl(dto.getPortfolioUrl()) // DB에 없으므로 삭제 (방법 1 적용)
-                .termsAgreed(dto.getTermsAgreed() ? 1 : 0) // Boolean -> Integer 변환 필요 시 처리
+                .phoneNumber(dto.getPhoneNumber())
+                .email(dto.getEmail())
+                .termsAgreed(dto.getTermsAgreed() ? 1 : 0)
                 .status("PENDING")
                 .build();
 
         applicationRepository.save(application);
-        // [수정 포인트] 로그 메시지의 getter 메서드명 수정
         log.info(">>>> [지원서 제출 완료] 성함: {}, 학번: {}", dto.getApplicantName(), dto.getStudentNumber());
     }
 
@@ -125,11 +122,12 @@ public class RecruitmentService {
                                 .value(ct.getValue())
                                 .subValue(ct.getSubValue())
                                 .build()).collect(Collectors.toList()))
+                // [수정 포인트] 엔티티 필드명 slotDate와 맞춤
                 .interviewSlots(slotRepository.findAllByRecruitment_RecruitmentId(recruitmentId).stream()
                         .map(s -> RecruitmentResponseDto.SlotDetails.builder()
                                 .slotId(s.getSlotId())
-                                .date(s.getInterviewDate().toString())
-                                .time(s.getStartTime() != null ? s.getStartTime().toString() : "시간 미정")
+                                .date(s.getSlotDate() != null ? s.getSlotDate().toString() : "날짜 미정")
+                                .time("시간 미정") // 현재 DB 스키마에 시간 컬럼이 없으므로 고정값 처리
                                 .isAvailable(s.getIsActive())
                                 .build()).collect(Collectors.toList()))
                 .build();
@@ -143,8 +141,6 @@ public class RecruitmentService {
                 .page(pageDetails)
                 .build();
     }
-
-    // ... (이하 동일한 로직은 유지하되 빌더/메서드 호출 시 필드명 주의)
 
     @Transactional(readOnly = true)
     public List<RecruitmentResponseDto> getAll() {

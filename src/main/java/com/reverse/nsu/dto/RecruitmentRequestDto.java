@@ -1,21 +1,15 @@
 package com.reverse.nsu.dto;
 
 import com.reverse.nsu.entity.Recruitment;
-import jakarta.validation.constraints.*;
 import lombok.*;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.util.List;
 
-@Getter
-@Setter
-@NoArgsConstructor
-@AllArgsConstructor
-@Builder
+@Getter @Setter @NoArgsConstructor @AllArgsConstructor @Builder
 public class RecruitmentRequestDto {
 
-    // --- 모집 공고 관리 및 기본 정보 ---
-    @NotNull(message = "모집 공고 ID는 필수입니다.")
     private Integer recruitmentId;
-
     private String title;
     private String description;
     private LocalDateTime applyStartDate;
@@ -23,50 +17,42 @@ public class RecruitmentRequestDto {
     private Boolean isActive;
     private String updatedBy;
 
-    // --- 상세 페이지(Hero 섹션)용 정보 ---
-    private String heroYear;
-    private String heroTitle;
-    private String heroSubTitle;
-    private String heroBgUrl;
-    private String heroBtnText;
+    // 상세 페이지 수정용
+    @Getter @Setter
+    public static class PageUpdate {
+        private Integer roleId;
+        private String adminId;
+        private String heroYear;
+        private String heroTitle;
+        private String heroSubTitle;
+        private String heroBtnText;
+        private String heroBgUrl;
+        private List<IntroDto> intros;
+        private List<CardDto> cards;
+        private List<GalleryDto> galleries;
+        private List<ContactDto> contacts;
+    }
 
-    // --- [화면정의서 반영] 신청자 상세 정보 입력란 ---
+    // [신규] 면접 슬롯 수정용
+    @Getter @Setter
+    public static class InterviewSlotUpdate {
+        private Integer roleId;
+        private String adminId;
+        private List<SlotDto> slots;
+    }
 
-    @NotBlank(message = "이름을 입력해주세요.")
-    private String studentName;
+    @Getter @Setter
+    public static class SlotDto {
+        private LocalDate slotDate;
+        private Integer capacity;
+    }
 
-    @NotBlank(message = "학번을 입력해주세요.")
-    private String studentId;
+    // 리스트 항목 DTO들
+    @Getter @Setter public static class IntroDto { private String contents; private Integer sortOrder; }
+    @Getter @Setter public static class CardDto { private String applyField; private String cardTitle; private String cardSubTitle; private String cardDesc; private String imageUrl; private Integer sortOrder; }
+    @Getter @Setter public static class GalleryDto { private String imageUrl; private String imageDesc; private String tag; private Integer sortOrder; }
+    @Getter @Setter public static class ContactDto { private String contactType; private String label; private String value; private String subValue; private Integer sortOrder; }
 
-    @NotBlank(message = "전공을 입력해주세요.")
-    private String major;
-
-    @NotNull(message = "학년을 선택해주세요.")
-    private Byte grade;
-
-    // 정의서 요구사항: 000-0000-0000 형식 확인
-    @NotBlank(message = "전화번호를 입력해주세요.")
-    @Pattern(regexp = "^\\d{3}-\\d{3,4}-\\d{4}$", message = "휴대폰 번호는 000-0000-0000 형식으로 입력해주세요.")
-    private String phoneNumber;
-
-    // 정의서 요구사항: 이메일 도메인 확인 (에러 문구: 그런 도메인 없다 돌아가라.)
-    @NotBlank(message = "이메일을 입력해주세요.")
-    @Email(message = "그런 도메인 없다 돌아가라.")
-    private String email;
-
-    @NotNull(message = "면접 일정을 선택해주세요.")
-    private Integer interviewSlotId;
-
-    private String portfolioUrl;
-
-    // 정의서 요구사항: 개인정보 수집 미동의 시 제출 불가
-    @NotNull(message = "개인정보 수집 및 이용 동의 여부가 필요합니다.")
-    @AssertTrue(message = "개인정보 수집 및 이용에 동의해야 합니다.")
-    private Boolean termsAgreed;
-
-    /**
-     * DTO를 Recruitment 엔티티로 변환 (공고 생성/수정 시 사용)
-     */
     public Recruitment toEntity() {
         return Recruitment.builder()
                 .title(this.title)

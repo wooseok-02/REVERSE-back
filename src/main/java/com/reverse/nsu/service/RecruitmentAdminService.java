@@ -1,21 +1,23 @@
 package com.reverse.nsu.service;
 
 import com.reverse.nsu.dto.ApplicationInterviewScheduleRequestDto;
+import com.reverse.nsu.dto.RecruitmentRequestDto;
 import com.reverse.nsu.dto.RecruitmentResponseDto;
 import com.reverse.nsu.entity.*;
 import com.reverse.nsu.repository.RecruitmentApplicationRepository;
 import com.reverse.nsu.repository.RecruitmentInterviewSlotRepository;
-import com.reverse.nsu.repository.RecruitmentRepository; // 추가
+import com.reverse.nsu.repository.RecruitmentRepository;
+import jakarta.persistence.EntityManager;
+import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
+import org.apache.poi.ss.usermodel.*;
+import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import org.apache.poi.ss.usermodel.*;
-import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
-
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
@@ -25,9 +27,10 @@ import java.util.stream.Collectors;
 @RequiredArgsConstructor
 public class RecruitmentAdminService {
 
-    private final RecruitmentRepository recruitmentRepository; // 추가
+    private final RecruitmentRepository recruitmentRepository;
     private final RecruitmentApplicationRepository applicationRepository;
     private final RecruitmentInterviewSlotRepository interviewSlotRepository;
+    private final EntityManager entityManager;
 
     /**
      * 관리자 권한 검증 (1: SUPER_ADMIN, 2: ADMIN)
@@ -39,25 +42,22 @@ public class RecruitmentAdminService {
     }
 
     /**
-     * [신규] 공고 및 상세 페이지 동시 생성
-     * 공고 생성 시 상세 페이지가 자동으로 생성되지 않아 발생하던 에러를 방지합니다.
+     * 공고 및 상세 페이지 동시 생성
      */
     @Transactional
     public Recruitment createRecruitment(Map<String, Object> request) {
         String adminId = (String) request.get("adminId");
 
-        // 1. 상세 페이지(RecruitmentPage) 객체 생성 (기본값 설정)
         RecruitmentPage page = RecruitmentPage.builder()
                 .heroTitle((String) request.get("title"))
                 .heroSubTitle("동아리 상세 정보")
-                .heroBtnText("지원하기")       // 이전 에러 해결
-                .heroYear("2026")            // 이번 에러 해결 (현재 연도 등)
+                .heroBtnText("지원하기")
+                .heroYear("2026")
                 .heroBgUrl("")
                 .updatedBy(adminId)
                 .isActive(true)
                 .build();
 
-        // 2. 공고(Recruitment) 객체 생성
         Recruitment recruitment = Recruitment.builder()
                 .title((String) request.get("title"))
                 .description((String) request.get("description"))
@@ -67,16 +67,14 @@ public class RecruitmentAdminService {
                 .isActive(true)
                 .build();
 
-        // 3. 양방향 연관 관계 설정 (중요!)
         recruitment.setRecruitmentPage(page);
         page.setRecruitment(recruitment);
 
-        // 4. 저장 (CascadeType.ALL로 인해 page도 함께 저장됨)
         return recruitmentRepository.save(recruitment);
     }
 
     /**
-     * [신규] 공고 수정 로직
+     * 공고 기본 정보 수정 로직
      */
     @Transactional
     public void updateRecruitment(Integer id, Map<String, Object> request) {
@@ -93,7 +91,94 @@ public class RecruitmentAdminService {
     }
 
     /**
-     * 1. 특정 공고의 지원자 목록 조회
+     * 상세 페이지 통합 수정 로직 (Hero, Intro, Card, Gallery, Contact)
+     */
+    @Transactional
+    public void updateRecruitmentPage(Integer recruitmentId, RecruitmentRequestDto.PageUpdate dto) {
+        Recruitment recruitment = recruitmentRepository.findById(recruitmentId)
+                .orElseThrow(() -> new EntityNotFoundException("공고를 찾을 수 없습니다. ID: " + recruitmentId));
+
+        RecruitmentPage page = recruitment.getRecruitmentPage();
+        String adminId = dto.getAdminId();
+
+        // 1. Hero 섹션 업데이트
+        page.setHeroYear(dto.getHeroYear());
+        page.setHeroTitle(dto.getHeroTitle());
+        page.setHeroSubTitle(dto.getHeroSubTitle());
+        page.setHeroBtnText(dto.getHeroBtnText());
+        page.setHeroBgUrl(dto.getHeroBgUrl());
+        page.setUpdatedBy(adminId);
+
+        // 2. 기존 리스트 비우기 및 즉시 반영 (중복 키 방지)
+        page.getIntros().clear();
+        page.getCards().clear();
+        page.getGalleries().clear();
+        page.getContacts().clear();
+        entityManager.flush();
+
+        // 3. 새 데이터 추가
+        if (dto.getIntros() != null) {
+            dto.getIntros().forEach(i -> page.getIntros().add(
+                    RecruitmentPageIntro.builder().recruitmentPage(page)
+                            .contents(i.getContents()).sortOrder(i.getSortOrder())
+                            .updatedBy(adminId).build()));
+        }
+
+        if (dto.getCards() != null) {
+            dto.getCards().forEach(c -> page.getCards().add(
+                    RecruitmentPageFieldCard.builder().recruitmentPage(page)
+                            .applyField(c.getApplyField()).cardTitle(c.getCardTitle())
+                            .cardSubTitle(c.getCardSubTitle()).cardDesc(c.getCardDesc())
+                            .imageUrl(c.getImageUrl()).sortOrder(c.getSortOrder())
+                            .updatedBy(adminId).build()));
+        }
+
+        if (dto.getGalleries() != null) {
+            dto.getGalleries().forEach(g -> page.getGalleries().add(
+                    RecruitmentPageGallery.builder().recruitmentPage(page)
+                            .imageUrl(g.getImageUrl()).imageDesc(g.getImageDesc())
+                            .tag(g.getTag()).sortOrder(g.getSortOrder())
+                            .updatedBy(adminId).build()));
+        }
+
+        if (dto.getContacts() != null) {
+            dto.getContacts().forEach(con -> page.getContacts().add(
+                    RecruitmentPageContact.builder().recruitmentPage(page)
+                            .contactType(con.getContactType()).label(con.getLabel())
+                            .value(con.getValue()).subValue(con.getSubValue())
+                            .sortOrder(con.getSortOrder()).updatedBy(adminId).build()));
+        }
+    }
+
+    /**
+     * 면접 일정 슬롯 설정 로직 (기존 슬롯 초기화 후 재생성)
+     */
+    @Transactional
+    public void updateInterviewSlots(Integer recruitmentId, RecruitmentRequestDto.InterviewSlotUpdate dto) {
+        Recruitment recruitment = recruitmentRepository.findById(recruitmentId)
+                .orElseThrow(() -> new EntityNotFoundException("공고를 찾을 수 없습니다."));
+
+        // 1. 기존 슬롯 삭제
+        interviewSlotRepository.deleteByRecruitment_RecruitmentId(recruitmentId);
+        entityManager.flush();
+
+        // 2. 새로운 슬롯 등록
+        if (dto.getSlots() != null) {
+            dto.getSlots().forEach(s -> {
+                RecruitmentInterviewSlot slot = RecruitmentInterviewSlot.builder()
+                        .recruitment(recruitment)
+                        .slotDate(s.getSlotDate())
+                        .capacity(s.getCapacity())
+                        .isActive(true)
+                        .updatedBy(dto.getAdminId())
+                        .build();
+                interviewSlotRepository.save(slot);
+            });
+        }
+    }
+
+    /**
+     * 특정 공고의 지원자 목록 조회
      */
     @Transactional(readOnly = true)
     public List<RecruitmentResponseDto.ApplicationDetails> getApplicationsByRecruit(
@@ -109,7 +194,7 @@ public class RecruitmentAdminService {
     }
 
     /**
-     * 2. 지원서 상태 변경
+     * 지원서 상태 변경
      */
     @Transactional
     public void updateApplicationStatus(Integer applicationId, String newStatus) {
@@ -120,7 +205,7 @@ public class RecruitmentAdminService {
     }
 
     /**
-     * 3. 지원서 상세 조회
+     * 지원서 상세 조회
      */
     @Transactional(readOnly = true)
     public RecruitmentResponseDto.ApplicationDetails getApplicationDetail(Integer applicationId) {
@@ -131,19 +216,17 @@ public class RecruitmentAdminService {
     }
 
     /**
-     * 4. 면접 스케줄 설정
+     * 개별 지원자 면접 스케줄 설정
      */
     @Transactional
     public void setInterviewSchedule(ApplicationInterviewScheduleRequestDto dto) {
         RecruitmentApplication application = applicationRepository.findById(dto.getApplicationId())
-                .orElseThrow(() -> new IllegalArgumentException("해당 지원서를 찾을 수 없습니다. ID: " + dto.getApplicationId()));
+                .orElseThrow(() -> new IllegalArgumentException("해당 지원서를 찾을 수 없습니다."));
 
         RecruitmentInterviewSlot slot = interviewSlotRepository.findById(dto.getSlotId())
-                .orElseThrow(() -> new IllegalArgumentException("해당 면접 슬롯을 찾을 수 없습니다. ID: " + dto.getSlotId()));
+                .orElseThrow(() -> new IllegalArgumentException("해당 면접 슬롯을 찾을 수 없습니다."));
 
-        if (!application.getApplicationInterviewSchedule().isEmpty()) {
-            application.getApplicationInterviewSchedule().clear();
-        }
+        application.getApplicationInterviewSchedule().clear();
 
         ApplicationInterviewSchedule schedule = ApplicationInterviewSchedule.builder()
                 .application(application)
@@ -154,7 +237,7 @@ public class RecruitmentAdminService {
     }
 
     /**
-     * 5. 지원자 목록 엑셀 추출
+     * 지원자 목록 엑셀 추출
      */
     @Transactional(readOnly = true)
     public ByteArrayInputStream downloadApplicationsExcel(Integer recruitmentId) throws IOException {
