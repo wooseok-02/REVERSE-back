@@ -37,10 +37,10 @@ public class Post {
     private Boolean isPinned = false;
 
     @Column(nullable = false)
-    private Boolean isExternal = false; // 외부 공개 여부
+    private Boolean isExternal = false;
 
     @Column(nullable = false, length = 20)
-    private String postCategory = "동아리 활동"; // 동아리 활동 | 대외활동
+    private String postCategory = "동아리 활동";
 
     private LocalDateTime modifiedDate;
 
@@ -56,6 +56,14 @@ public class Post {
         post.postCategory = dto.getCategory() != null ? dto.getCategory() : "동아리 활동";
         return post;
     }
+
+    // 댓글 수 증감
+    public void incrementCommentCount() { this.postCommentCount++; }
+    public void decrementCommentCount() { if (this.postCommentCount > 0) this.postCommentCount--; }
+
+    // 좋아요 수 증감
+    public void incrementLikeCount() { this.postLikeCount++; }
+    public void decrementLikeCount() { if (this.postLikeCount > 0) this.postLikeCount--; }
 
     // 수정
     public void update(NoticeAdminRequestDto dto) {
