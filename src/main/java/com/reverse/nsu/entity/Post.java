@@ -1,69 +1,107 @@
 package com.reverse.nsu.entity;
 
+import com.reverse.nsu.dto.NoticeAdminRequestDto;
 import jakarta.persistence.*;
+import lombok.AccessLevel;
 import lombok.Getter;
+import lombok.NoArgsConstructor;
 import java.time.LocalDateTime;
 
-import com.reverse.nsu.dto.NoticeAdminRequestDto;
-
-@Entity @Table(name = "POST") @Getter
+@Entity
+@Table(name = "POST")
+@Getter
+@NoArgsConstructor(access = AccessLevel.PROTECTED)
 public class Post {
 
-    @Id @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Integer postId;
 
-    @Column(nullable = false, length = 15)
+    @Column(name = "userId", nullable = false, length = 15)
     private String userId;
 
-    @Column(nullable = false)
+    @Column(name = "boardId", nullable = false)
     private Integer boardId;
 
-    @Column(nullable = false, length = 50)
+    // [수정] 가상 필드가 아닌 실제 DB 컬럼과 매핑
+    @Column(name = "postCategory", length = 20)
+    private String postCategory;
+
+    @Column(name = "postTitle", nullable = false, length = 50)
     private String postTitle;
 
-    @Column(nullable = false, length = 4000)
+    @Column(name = "postContents", nullable = false, length = 4000)
     private String postContents;
 
-    @Column(nullable = false)
+    @Column(name = "postCommentCount", nullable = false)
     private Integer postCommentCount = 0;
 
-    @Column(nullable = false)
+    @Column(name = "postLikeCount", nullable = false)
     private Integer postLikeCount = 0;
 
-    @Column(nullable = false, updatable = false)
+    @Column(name = "createdDate", nullable = false, updatable = false)
     private LocalDateTime createdDate = LocalDateTime.now();
 
-    @Column(nullable = false)
-    private Boolean isPinned = false;
-
-    @Column(nullable = false)
-    private Boolean isExternal = false; // 외부 공개 여부
-
-    @Column(nullable = false, length = 20)
-    private String postCategory = "동아리 활동"; // 동아리 활동 | 대외활동
-
+    @Column(name = "modifiedDate")
     private LocalDateTime modifiedDate;
 
-    // 공지사항 생성
-    public static Post createNotice(NoticeAdminRequestDto dto, String userId, Integer boardId) {
+    @Column(name = "isPinned", nullable = false)
+    private Boolean isPinned = false;
+
+    @Column(name = "isExternal", nullable = false)
+    private Boolean isExternal = false;
+
+    // --- 가상 Getter (응답용) ---
+
+    /** [정의서 반영] 수정 여부 반환 */
+    @Transient
+    public boolean getIsModified() {
+        return this.modifiedDate != null;
+    }
+
+    // --- 비즈니스 로직 (생성 및 수정) ---
+
+    /**
+     * 게시글 생성 공통 로직
+     */
+    public static Post createPost(NoticeAdminRequestDto dto, String userId, Integer boardId) {
         Post post = new Post();
         post.userId = userId;
         post.boardId = boardId;
+
+        // [수정] DTO에 카테고리가 있다면 저장, 없으면 기본값 설정 가능
+        post.postCategory = dto.getCategory();
+
         post.postTitle = dto.getTitle();
         post.postContents = dto.getContent();
-        post.isPinned = dto.getIsPinned() != null ? dto.getIsPinned() : false;
-        post.isExternal = dto.getIsExternal() != null ? dto.getIsExternal() : false;
-        post.postCategory = dto.getCategory() != null ? dto.getCategory() : "동아리 활동";
+        post.isPinned = (dto.getIsPinned() != null) ? dto.getIsPinned() : false;
+        post.isExternal = (dto.getIsExternal() != null) ? dto.getIsExternal() : false;
+
+        post.postCommentCount = 0;
+        post.postLikeCount = 0;
+        post.createdDate = LocalDateTime.now();
         return post;
     }
 
-    // 수정
+    /** NoticeService와의 호환성을 위해 유지 */
+    public static Post createNotice(NoticeAdminRequestDto dto, String userId, Integer boardId) {
+        return createPost(dto, userId, boardId);
+    }
+
+    /**
+     * 게시글 수정 로직
+     */
     public void update(NoticeAdminRequestDto dto) {
         this.postTitle = dto.getTitle();
         this.postContents = dto.getContent();
+
+        // [수정] 카테고리 수정 로직 추가
+        if (dto.getCategory() != null) {
+            this.postCategory = dto.getCategory();
+        }
+
         if (dto.getIsPinned() != null) this.isPinned = dto.getIsPinned();
         if (dto.getIsExternal() != null) this.isExternal = dto.getIsExternal();
-        if (dto.getCategory() != null) this.postCategory = dto.getCategory();
         this.modifiedDate = LocalDateTime.now();
     }
 }
