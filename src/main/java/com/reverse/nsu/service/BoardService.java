@@ -73,7 +73,7 @@ public class BoardService {
             postRepository.save(post);
             return false; // 좋아요 취소
         } else {
-            postLikeRepository.save(PostLike.create(userId, postId));
+            postLikeRepository.save(PostLike.create(postId, userId));
             post.incrementLikeCount();
             postRepository.save(post);
             return true; // 좋아요 추가

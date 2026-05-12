@@ -23,9 +23,8 @@ public class Post {
     @Column(name = "boardId", nullable = false)
     private Integer boardId;
 
-    // [수정] 가상 필드가 아닌 실제 DB 컬럼과 매핑
     @Column(name = "postCategory", length = 20)
-    private String postCategory;
+    private String postCategory = "동아리 활동"; // 기본값 설정
 
     @Column(name = "postTitle", nullable = false, length = 50)
     private String postTitle;
@@ -42,19 +41,7 @@ public class Post {
     @Column(name = "createdDate", nullable = false, updatable = false)
     private LocalDateTime createdDate = LocalDateTime.now();
 
-<<<<<<< HEAD
     @Column(name = "modifiedDate")
-=======
-    @Column(nullable = false)
-    private Boolean isPinned = false;
-
-    @Column(nullable = false)
-    private Boolean isExternal = false;
-
-    @Column(nullable = false, length = 20)
-    private String postCategory = "동아리 활동";
-
->>>>>>> 3fee7c5510531ab65f364f31094a78799a48622e
     private LocalDateTime modifiedDate;
 
     @Column(name = "isPinned", nullable = false)
@@ -64,66 +51,45 @@ public class Post {
     private Boolean isExternal = false;
 
     // --- 가상 Getter (응답용) ---
-
-    /** [정의서 반영] 수정 여부 반환 */
     @Transient
     public boolean getIsModified() {
         return this.modifiedDate != null;
     }
 
-    // --- 비즈니스 로직 (생성 및 수정) ---
+    // --- 비즈니스 로직 ---
 
-    /**
-     * 게시글 생성 공통 로직
-     */
     public static Post createPost(NoticeAdminRequestDto dto, String userId, Integer boardId) {
         Post post = new Post();
         post.userId = userId;
         post.boardId = boardId;
-
-        // [수정] DTO에 카테고리가 있다면 저장, 없으면 기본값 설정 가능
-        post.postCategory = dto.getCategory();
-
+        post.postCategory = (dto.getCategory() != null) ? dto.getCategory() : "동아리 활동";
         post.postTitle = dto.getTitle();
         post.postContents = dto.getContent();
         post.isPinned = (dto.getIsPinned() != null) ? dto.getIsPinned() : false;
         post.isExternal = (dto.getIsExternal() != null) ? dto.getIsExternal() : false;
-
         post.postCommentCount = 0;
         post.postLikeCount = 0;
         post.createdDate = LocalDateTime.now();
         return post;
     }
 
-<<<<<<< HEAD
     /** NoticeService와의 호환성을 위해 유지 */
     public static Post createNotice(NoticeAdminRequestDto dto, String userId, Integer boardId) {
         return createPost(dto, userId, boardId);
     }
 
-    /**
-     * 게시글 수정 로직
-     */
-=======
-    // 댓글 수 증감
+    // 댓글/좋아요 수 증감 로직
     public void incrementCommentCount() { this.postCommentCount++; }
     public void decrementCommentCount() { if (this.postCommentCount > 0) this.postCommentCount--; }
-
-    // 좋아요 수 증감
     public void incrementLikeCount() { this.postLikeCount++; }
     public void decrementLikeCount() { if (this.postLikeCount > 0) this.postLikeCount--; }
 
-    // 수정
->>>>>>> 3fee7c5510531ab65f364f31094a78799a48622e
     public void update(NoticeAdminRequestDto dto) {
         this.postTitle = dto.getTitle();
         this.postContents = dto.getContent();
-
-        // [수정] 카테고리 수정 로직 추가
         if (dto.getCategory() != null) {
             this.postCategory = dto.getCategory();
         }
-
         if (dto.getIsPinned() != null) this.isPinned = dto.getIsPinned();
         if (dto.getIsExternal() != null) this.isExternal = dto.getIsExternal();
         this.modifiedDate = LocalDateTime.now();
