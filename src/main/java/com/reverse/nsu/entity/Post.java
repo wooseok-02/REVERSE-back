@@ -42,7 +42,19 @@ public class Post {
     @Column(name = "createdDate", nullable = false, updatable = false)
     private LocalDateTime createdDate = LocalDateTime.now();
 
+<<<<<<< HEAD
     @Column(name = "modifiedDate")
+=======
+    @Column(nullable = false)
+    private Boolean isPinned = false;
+
+    @Column(nullable = false)
+    private Boolean isExternal = false;
+
+    @Column(nullable = false, length = 20)
+    private String postCategory = "동아리 활동";
+
+>>>>>>> 3fee7c5510531ab65f364f31094a78799a48622e
     private LocalDateTime modifiedDate;
 
     @Column(name = "isPinned", nullable = false)
@@ -83,6 +95,7 @@ public class Post {
         return post;
     }
 
+<<<<<<< HEAD
     /** NoticeService와의 호환성을 위해 유지 */
     public static Post createNotice(NoticeAdminRequestDto dto, String userId, Integer boardId) {
         return createPost(dto, userId, boardId);
@@ -91,6 +104,17 @@ public class Post {
     /**
      * 게시글 수정 로직
      */
+=======
+    // 댓글 수 증감
+    public void incrementCommentCount() { this.postCommentCount++; }
+    public void decrementCommentCount() { if (this.postCommentCount > 0) this.postCommentCount--; }
+
+    // 좋아요 수 증감
+    public void incrementLikeCount() { this.postLikeCount++; }
+    public void decrementLikeCount() { if (this.postLikeCount > 0) this.postLikeCount--; }
+
+    // 수정
+>>>>>>> 3fee7c5510531ab65f364f31094a78799a48622e
     public void update(NoticeAdminRequestDto dto) {
         this.postTitle = dto.getTitle();
         this.postContents = dto.getContent();
