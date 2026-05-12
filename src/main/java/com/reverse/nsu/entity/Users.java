@@ -19,7 +19,7 @@ public class Users {
     @Column(name = "userId", nullable = false, length = 15)
     private String userId; // PK
 
-    // ROLE 테이블과의 외래키 관계 (FK_USERS_ROLE)
+    // ROLE 테이블과의 외래키 관계
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "roleId", nullable = false)
     private Role role;
@@ -27,6 +27,7 @@ public class Users {
     @Column(name = "userName", nullable = false, length = 34)
     private String userName;
 
+    // [추가] DB 스키마의 userEmail 컬럼과 매칭되는 필드
     @Column(name = "userEmail", nullable = false, length = 100)
     private String userEmail;
 

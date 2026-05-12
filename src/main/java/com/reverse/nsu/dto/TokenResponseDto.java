@@ -1,12 +1,12 @@
 package com.reverse.nsu.dto;
 
-import lombok.AllArgsConstructor;
-import lombok.Getter;
+import lombok.*;
 
 import java.time.LocalDateTime;
 
+
 @Getter
-@AllArgsConstructor
+@AllArgsConstructor @NoArgsConstructor
 public class TokenResponseDto {
     private String accessToken;
     private String refreshToken;
