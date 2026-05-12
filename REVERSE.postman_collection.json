@@ -31,6 +31,74 @@
       "name": "2. 인증 (Auth)",
       "item": [
         {
+          "name": "POST /api/auth/email/send",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": {
+              "raw": "{{baseURL}}/api/auth/email/send",
+              "host": ["{{baseURL}}"],
+              "path": ["api", "auth", "email", "send"]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"hong@example.com\"\n}",
+              "options": { "raw": { "language": "json" } }
+            }
+          }
+        },
+        {
+          "name": "POST /api/auth/email/resend",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": {
+              "raw": "{{baseURL}}/api/auth/email/resend",
+              "host": ["{{baseURL}}"],
+              "path": ["api", "auth", "email", "resend"]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"hong@example.com\"\n}",
+              "options": { "raw": { "language": "json" } }
+            }
+          }
+        },
+        {
+          "name": "POST /api/auth/email/verify",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": {
+              "raw": "{{baseURL}}/api/auth/email/verify",
+              "host": ["{{baseURL}}"],
+              "path": ["api", "auth", "email", "verify"]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"hong@example.com\",\n  \"code\": \"382910\"\n}",
+              "options": { "raw": { "language": "json" } }
+            }
+          }
+        },
+        {
+          "name": "POST /api/auth/register",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": {
+              "raw": "{{baseURL}}/api/auth/register",
+              "host": ["{{baseURL}}"],
+              "path": ["api", "auth", "register"]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"userId\": \"user01\",\n  \"userName\": \"홍길동\",\n  \"userEmail\": \"hong@example.com\",\n  \"userPassword\": \"plainPassword\",\n  \"userIntroduce\": \"안녕하세요!\",\n  \"userMbti\": \"INFP\",\n  \"consents\": [\n    { \"consentItemId\": 1, \"isAgreed\": true },\n    { \"consentItemId\": 2, \"isAgreed\": true },\n    { \"consentItemId\": 3, \"isAgreed\": false },\n    { \"consentItemId\": 4, \"isAgreed\": false }\n  ]\n}",
+              "options": { "raw": { "language": "json" } }
+            }
+          }
+        },
+        {
           "name": "POST /api/auth/login",
           "request": {
             "method": "POST",
