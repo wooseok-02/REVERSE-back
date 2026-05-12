@@ -43,6 +43,121 @@ Base Path: `/api/auth`
 
 ---
 
+### POST /api/auth/email/send
+인증번호를 이메일로 전송한다. 기존 미인증 코드는 자동으로 폐기된다.
+인증번호 유효시간은 **5분**이다.
+
+**요청 Body** `application/json`
+
+| 필드 | 타입 | 필수 | 설명 |
+|---|---|---|---|
+| `email` | String | Y | 인증번호를 받을 이메일 주소 |
+
+```json
+{ "email": "hong@example.com" }
+```
+
+**응답 `200 OK`** (plain text)
+```
+인증번호가 전송되었습니다.
+```
+
+---
+
+### POST /api/auth/email/resend
+인증번호를 재전송한다. 이전 코드는 폐기되고 새 코드가 발급된다.
+
+**요청 Body** — `POST /api/auth/email/send`와 동일
+
+**응답 `200 OK`** (plain text)
+```
+인증번호가 재전송되었습니다.
+```
+
+---
+
+### POST /api/auth/email/verify
+입력한 인증번호가 맞는지 확인한다.
+
+**요청 Body** `application/json`
+
+| 필드 | 타입 | 필수 | 설명 |
+|---|---|---|---|
+| `email` | String | Y | 인증 대상 이메일 |
+| `code` | String | Y | 수신한 6자리 인증번호 |
+
+```json
+{
+  "email": "hong@example.com",
+  "code": "382910"
+}
+```
+
+**응답 `200 OK`** (plain text)
+```
+이메일 인증이 완료되었습니다.
+```
+
+**에러 응답**
+| 상황 | HTTP 상태 |
+|---|---|
+| 인증번호 없음 | `500` — 인증번호를 찾을 수 없습니다. |
+| 인증번호 만료 | `500` — 인증번호가 만료되었습니다. |
+| 인증번호 불일치 | `500` — 인증번호가 올바르지 않습니다. |
+
+---
+
+### POST /api/auth/register
+이메일 인증 완료 후 신규 계정을 생성한다.
+가입 즉시 `GUEST` 역할이 부여된다.
+
+**요청 Body** `application/json`
+
+| 필드 | 타입 | 필수 | 설명 |
+|---|---|---|---|
+| `userId` | String | Y | 사용자 ID (최대 15자, 중복 불가) |
+| `userName` | String | Y | 사용자 이름 (최대 34자) |
+| `userEmail` | String | Y | 인증 완료된 이메일 |
+| `userPassword` | String | Y | 비밀번호 (BCrypt 해시로 저장) |
+| `userIntroduce` | String | N | 자기소개 (최대 100자) |
+| `userMbti` | String | N | MBTI (4자) |
+| `consents` | List | Y | 약관 동의 목록 |
+| `consents[].consentItemId` | Integer | Y | 약관 항목 ID |
+| `consents[].isAgreed` | Boolean | Y | 동의 여부 |
+
+```json
+{
+  "userId": "user01",
+  "userName": "홍길동",
+  "userEmail": "hong@example.com",
+  "userPassword": "plainPassword",
+  "userIntroduce": "안녕하세요!",
+  "userMbti": "INFP",
+  "consents": [
+    { "consentItemId": 1, "isAgreed": true },
+    { "consentItemId": 2, "isAgreed": true },
+    { "consentItemId": 3, "isAgreed": false },
+    { "consentItemId": 4, "isAgreed": false }
+  ]
+}
+```
+
+> 약관 항목 ID는 `CONSENT_ITEM` 테이블 기준 (1: 이용약관, 2: 개인정보 수집 및 이용, 3: 마케팅 수신, 4: 이벤트 알림)
+
+**응답 `200 OK`** (plain text)
+```
+회원가입이 완료되었습니다.
+```
+
+**에러 응답**
+| 상황 | HTTP 상태 |
+|---|---|
+| userId 중복 | `500` — 이미 사용 중인 아이디입니다. |
+| 이메일 미인증 | `500` — 이메일 인증이 완료되지 않았습니다. |
+| 필수 약관 미동의 | `500` — 필수 약관에 동의해야 합니다: {약관명} |
+
+---
+
 ### POST /api/auth/login
 아이디와 비밀번호로 로그인하여 액세스 토큰과 리프레시 토큰을 발급한다.
 
