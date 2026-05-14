@@ -6,7 +6,8 @@ import java.util.List;
 
 @Getter
 public class NoticeResponseDto {
-    private final Integer id;
+    // 1. id를 postId로 변경하여 전체적인 명명 규칙을 통일합니다.
+    private final Integer postId;
     private final String title;
     private final String content;
     private final String createdAt;
@@ -20,12 +21,12 @@ public class NoticeResponseDto {
     }
 
     private NoticeResponseDto(Post post, List<String> imageUrls) {
-        this.id = post.getPostId();
+        this.postId = post.getPostId();
         this.title = post.getPostTitle();
         this.content = post.getPostContents();
         this.createdAt = post.getCreatedDate().toLocalDate().toString();
         this.userId = post.getUserId();
-        this.category = post.getPostCategory(); // 이제 가상 필드가 아닌 실제 필드 호출!
+        this.category = post.getPostCategory();
         this.isExternal = post.getIsExternal();
         this.imageUrls = imageUrls;
     }

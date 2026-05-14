@@ -51,7 +51,7 @@ public class PostService {
     @Transactional
     public void deletePost(Integer postId, String userId) {
         Post post = findPostOrThrow(postId);
-        // 실제 운영 시 관리자 여부 체크 로직이 추가될 수 있으나, 우선 작성자 본인 확인 유지
+        // 작성자 본인 확인 또는 관리자(ADMIN) 권한 확인
         if (!post.getUserId().equals(userId) && !userId.equals("ADMIN")) {
             throw new IllegalStateException("삭제 권한이 없습니다.");
         }
@@ -59,21 +59,27 @@ public class PostService {
     }
 
     /**
-     * 게시글 목록 조회 및 검색 (카테고리 필터링 포함)
+     * 게시글 목록 조회 및 검색 (카테고리 필터링 및 boardId 필터링 강화)
      */
     @Transactional(readOnly = true)
     public Page<Post> searchPosts(Integer boardId, String category, String type, String keyword, Pageable pageable, String userId) {
+        // 로그인 여부 확인
         boolean isLoggedIn = (userId != null && usersRepository.existsById(userId));
 
-        // 1. 카테고리 필터링 (키워드가 없고 카테고리 탭만 선택된 경우)
-        if ((keyword == null || keyword.trim().isEmpty()) && category != null && !category.trim().isEmpty()) {
+        // [핵심 수정] 프론트에서 "전체"를 보낼 경우 필터링을 하지 않도록 처리
+        if ("전체".equals(category) || (category != null && category.trim().isEmpty())) {
+            category = null;
+        }
+
+        // 1. 카테고리 필터링 (검색어가 없고 특정 카테고리만 선택된 경우)
+        if ((keyword == null || keyword.trim().isEmpty()) && category != null) {
             return isLoggedIn ?
                     postRepository.findAllByBoardIdAndPostCategoryOrderByCreatedDateDesc(boardId, category, pageable) :
                     postRepository.findAllByBoardIdAndPostCategoryAndIsExternalTrueOrderByCreatedDateDesc(boardId, category, pageable);
         }
 
-        // 2. 검색어 제한 (2글자 미만)
-        if (keyword != null && keyword.trim().length() < 2) {
+        // 2. 검색어 제한 (2글자 미만 체크)
+        if (keyword != null && !keyword.trim().isEmpty() && keyword.trim().length() < 2) {
             throw new IllegalArgumentException("검색어는 최소 2글자 이상 입력해 주세요.");
         }
 

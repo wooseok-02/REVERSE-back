@@ -33,6 +33,7 @@ public class BoardService {
 
     private Integer getBoardId() {
         if (boardId == null) {
+            // .getBoardId() 호출 위치를 안전하게 조정
             boardId = boardRepository.findByBoardName("게시판")
                     .orElseThrow(() -> new RuntimeException("게시판이 존재하지 않습니다."))
                     .getBoardId();
@@ -40,9 +41,9 @@ public class BoardService {
         return boardId;
     }
 
-    // 목록 조회 (10개 페이징)
+    // 목록 조회 (동건 님이 설정하신 6개 페이징 유지)
     public Page<BoardPostListResponseDto> getAll(int page) {
-        Pageable pageable = PageRequest.of(page, 10);
+        Pageable pageable = PageRequest.of(page, 6);
         return postRepository.findAllByBoardIdOrderByCreatedDateDesc(getBoardId(), pageable)
                 .map(BoardPostListResponseDto::new);
     }
@@ -53,30 +54,36 @@ public class BoardService {
                 .filter(p -> p.getBoardId().equals(getBoardId()))
                 .orElseThrow(() -> new IllegalArgumentException("NOT_FOUND"));
 
-        List<String> imageUrls = postAttachedRepository.findAllByPostId(postId)
-                .stream().map(PostAttached::getAttachedUrl).collect(Collectors.toList());
+        // [수정] Repository의 변경된 메서드명(findAllByPost_PostId) 호출
+        List<String> imageUrls = postAttachedRepository.findAllByPost_PostId(postId)
+                .stream()
+                .map(PostAttached::getAttachedUrl)
+                .collect(Collectors.toList());
 
         return BoardPostResponseDto.from(post, imageUrls);
     }
 
-    // BRD07 - 좋아요 토글 (true = 좋아요 추가, false = 좋아요 취소)
+    // BRD07 - 좋아요 토글
     @Transactional
     public boolean toggleLike(Integer postId, String userId) {
         Post post = postRepository.findById(postId)
                 .filter(p -> p.getBoardId().equals(getBoardId()))
                 .orElseThrow(() -> new IllegalArgumentException("NOT_FOUND"));
 
-        Optional<PostLike> existing = postLikeRepository.findByUserIdAndPostId(userId, postId);
+        // [수정] Repository의 변경된 메서드명(findByUserIdAndPost_PostId) 호출
+        Optional<PostLike> existing = postLikeRepository.findByUserIdAndPost_PostId(userId, postId);
+
         if (existing.isPresent()) {
             postLikeRepository.delete(existing.get());
             post.decrementLikeCount();
             postRepository.save(post);
-            return false; // 좋아요 취소
+            return false;
         } else {
-            postLikeRepository.save(PostLike.create(postId, userId));
+            // Post 객체를 직접 넘기는 구조 유지
+            postLikeRepository.save(PostLike.create(post, userId));
             post.incrementLikeCount();
             postRepository.save(post);
-            return true; // 좋아요 추가
+            return true;
         }
     }
 }

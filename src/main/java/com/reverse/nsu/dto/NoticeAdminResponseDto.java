@@ -8,7 +8,8 @@ import java.util.List;
 @Getter
 @NoArgsConstructor
 public class NoticeAdminResponseDto {
-    private Integer noticeId;
+    // 1. noticeId에서 postId로 이름을 변경합니다.
+    private Integer postId;
     private String title;
     private String content;
     private Boolean isPinned;
@@ -16,9 +17,9 @@ public class NoticeAdminResponseDto {
     private String category;
     private List<String> imageUrls;
 
-    // 서비스/컨트롤러에서 new NoticeAdminResponseDto(post, list)로 호출할 수 있게 함
+    // 2. 생성자 내부에서도 postId로 매핑되도록 수정합니다.
     public NoticeAdminResponseDto(Post post, List<String> imageUrls) {
-        this.noticeId = post.getPostId();
+        this.postId = post.getPostId();
         this.title = post.getPostTitle();
         this.content = post.getPostContents();
         this.isPinned = post.getIsPinned();
@@ -27,8 +28,8 @@ public class NoticeAdminResponseDto {
         this.imageUrls = imageUrls;
     }
 
-    // 만약 기존에 Integer ID만 받는 생성자가 필요하다면 (임시용)
-    public NoticeAdminResponseDto(Integer noticeId) {
-        this.noticeId = noticeId;
+    // 3. 임시 생성자도 postId로 이름을 맞춰줍니다.
+    public NoticeAdminResponseDto(Integer postId) {
+        this.postId = postId;
     }
 }

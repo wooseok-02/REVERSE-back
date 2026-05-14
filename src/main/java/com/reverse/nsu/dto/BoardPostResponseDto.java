@@ -6,7 +6,8 @@ import java.util.List;
 
 @Getter
 public class BoardPostResponseDto {
-    private final Integer id;
+    // 1. id를 postId로 변경하여 다른 DTO들과 이름을 맞춥니다.
+    private final Integer postId;
     private final String title;
     private final String content;
     private final String userId;
@@ -21,7 +22,8 @@ public class BoardPostResponseDto {
     }
 
     private BoardPostResponseDto(Post post, List<String> imageUrls) {
-        this.id = post.getPostId();
+        // 2. 매핑되는 필드도 postId로 수정합니다.
+        this.postId = post.getPostId();
         this.title = post.getPostTitle();
         this.content = post.getPostContents();
         this.userId = post.getUserId();
