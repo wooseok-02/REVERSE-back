@@ -7,7 +7,7 @@ import java.util.List;
 @Getter
 @NoArgsConstructor
 public class NoticeAdminRequestDto {
-    private Integer noticeId;
+    private Integer postId;
     private String title;
     private String content;
     private Boolean isPinned;

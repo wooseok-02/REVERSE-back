@@ -15,7 +15,6 @@ public class NoticeAdminController {
     private final NoticeService noticeService;
 
     /**
-     * [핵심 수정] 가짜 신분증(X-User-Id) 로직을 완전히 제거하고,
      * 인터셉터(JwtInterceptor)가 HttpServletRequest에 넣어준 유저 ID만 사용합니다.
      */
     private String resolveUserId(HttpServletRequest request) {
@@ -31,11 +30,11 @@ public class NoticeAdminController {
             HttpServletRequest request
     ) {
         try {
-            // 이제 debugUserId는 받지도, 쓰지도 않습니다.
             String userId = resolveUserId(request);
             if (userId == null || userId.trim().isEmpty()) return unauthorizedResponse();
 
-            if (dto.getNoticeId() != null) {
+            // [핵심 수정] dto.getNoticeId() -> dto.getPostId()로 변경
+            if (dto.getPostId() != null) {
                 NoticeAdminResponseDto response = noticeService.update(dto, userId);
                 return ResponseEntity.ok(ApiResponse.ok(response, "공지사항이 수정되었습니다."));
             } else {
@@ -51,17 +50,18 @@ public class NoticeAdminController {
 
     /**
      * 공지사항 삭제 (관리자 전용)
+     * 경로 변수명을 noticeId에서 postId로 변경하여 통일감을 줍니다.
      */
-    @DeleteMapping("/{noticeId}")
+    @DeleteMapping("/{postId}")
     public ResponseEntity<?> delete(
-            @PathVariable Integer noticeId,
+            @PathVariable Integer postId,
             HttpServletRequest request
     ) {
         try {
             String userId = resolveUserId(request);
             if (userId == null || userId.trim().isEmpty()) return unauthorizedResponse();
 
-            noticeService.delete(noticeId, userId);
+            noticeService.delete(postId, userId);
             return ResponseEntity.ok(ApiResponse.ok(null, "삭제되었습니다."));
         } catch (Exception e) {
             return ResponseEntity.status(400)

@@ -6,6 +6,8 @@ import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.List;
 
 @Entity
 @Table(name = "POST")
@@ -24,7 +26,7 @@ public class Post {
     private Integer boardId;
 
     @Column(name = "postCategory", length = 20)
-    private String postCategory = "동아리 활동"; // 기본값 설정
+    private String postCategory = "동아리 활동";
 
     @Column(name = "postTitle", nullable = false, length = 50)
     private String postTitle;
@@ -50,7 +52,17 @@ public class Post {
     @Column(name = "isExternal", nullable = false)
     private Boolean isExternal = false;
 
-    // --- 가상 Getter (응답용) ---
+    // --- 연관관계 설정 (삭제 에러 해결) ---
+
+    // 게시글 삭제 시 해당 게시글의 좋아요 데이터도 자동 삭제
+    @OneToMany(mappedBy = "post", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<PostLike> postLikes = new ArrayList<>();
+
+    // 게시글 삭제 시 해당 게시글의 첨부파일 데이터도 자동 삭제
+    @OneToMany(mappedBy = "post", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<PostAttached> attachedFiles = new ArrayList<>();
+
+    // --- 가상 Getter ---
     @Transient
     public boolean getIsModified() {
         return this.modifiedDate != null;
@@ -58,11 +70,17 @@ public class Post {
 
     // --- 비즈니스 로직 ---
 
+    /**
+     * 게시글 생성 정적 팩토리 메서드
+     * [참고] 이제 토큰을 통해 검증된 userId만 넘어오게 됩니다.
+     */
     public static Post createPost(NoticeAdminRequestDto dto, String userId, Integer boardId) {
         Post post = new Post();
         post.userId = userId;
         post.boardId = boardId;
-        post.postCategory = (dto.getCategory() != null) ? dto.getCategory() : "동아리 활동";
+        // "전체" 카테고리로 저장되는 것을 방지하기 위한 기본값 처리
+        post.postCategory = (dto.getCategory() != null && !dto.getCategory().equals("전체"))
+                ? dto.getCategory() : "동아리 활동";
         post.postTitle = dto.getTitle();
         post.postContents = dto.getContent();
         post.isPinned = (dto.getIsPinned() != null) ? dto.getIsPinned() : false;
@@ -73,12 +91,10 @@ public class Post {
         return post;
     }
 
-    /** NoticeService와의 호환성을 위해 유지 */
     public static Post createNotice(NoticeAdminRequestDto dto, String userId, Integer boardId) {
         return createPost(dto, userId, boardId);
     }
 
-    // 댓글/좋아요 수 증감 로직
     public void incrementCommentCount() { this.postCommentCount++; }
     public void decrementCommentCount() { if (this.postCommentCount > 0) this.postCommentCount--; }
     public void incrementLikeCount() { this.postLikeCount++; }
@@ -87,7 +103,8 @@ public class Post {
     public void update(NoticeAdminRequestDto dto) {
         this.postTitle = dto.getTitle();
         this.postContents = dto.getContent();
-        if (dto.getCategory() != null) {
+        // 수정 시에도 "전체" 카테고리가 텍스트로 박히는 것을 방지
+        if (dto.getCategory() != null && !dto.getCategory().equals("전체")) {
             this.postCategory = dto.getCategory();
         }
         if (dto.getIsPinned() != null) this.isPinned = dto.getIsPinned();
