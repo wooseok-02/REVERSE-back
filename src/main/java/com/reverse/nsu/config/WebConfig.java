@@ -15,11 +15,16 @@ public class WebConfig implements WebMvcConfigurer {
     @Override
     public void addCorsMappings(CorsRegistry registry) {
         registry.addMapping("/**")
-                .allowedOriginPatterns("https://nsu-reverse.site", "http://localhost:3000") // 보안을 위해 도메인 명시 권장
-                .allowedMethods("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS") // [수정] PATCH 추가 (수정 시 필요)
+                .allowedOriginPatterns(
+                        "http://localhost:3000",
+                        "http://localhost:5173",
+                        "https://nsu-reverse.site",
+                        "https://www.nsu-reverse.site"
+                )
+                .allowedMethods("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS")
                 .allowedHeaders("*")
                 .allowCredentials(true)
-                .maxAge(3600); // 프리플라이트 요청 캐싱 시간 설정
+                .maxAge(3600);
     }
 
     @Override
