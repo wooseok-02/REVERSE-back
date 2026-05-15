@@ -3,6 +3,7 @@ package com.reverse.nsu.service;
 import com.reverse.nsu.dto.BoardPostListResponseDto;
 import com.reverse.nsu.dto.BoardPostResponseDto;
 import com.reverse.nsu.entity.Post;
+import com.reverse.nsu.entity.PostAttached;
 import com.reverse.nsu.entity.PostLike;
 import com.reverse.nsu.repository.BoardRepository;
 import com.reverse.nsu.repository.PostAttachedRepository;
@@ -17,6 +18,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 import java.util.Optional;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -52,9 +54,11 @@ public class BoardService {
                 .filter(p -> p.getBoardId().equals(getBoardId()))
                 .orElseThrow(() -> new IllegalArgumentException("NOT_FOUND"));
 
-        // [수정] 외부 리포지토리를 복잡하게 부를 필요 없이,
-        // Post 엔티티가 들고 있는 이미지 리스트를 바로 활용합니다.
-        List<String> imageUrls = post.getImageUrlList();
+        // lazy 로딩 문제를 피하기 위해 postAttachedRepository로 직접 조회
+        List<String> imageUrls = postAttachedRepository.findAllByPost(post)
+                .stream()
+                .map(PostAttached::getAttachedUrl)
+                .collect(Collectors.toList());
 
         return BoardPostResponseDto.from(post, imageUrls);
     }
