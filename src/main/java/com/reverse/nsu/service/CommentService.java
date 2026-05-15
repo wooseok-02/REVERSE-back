@@ -21,18 +21,20 @@ public class CommentService {
     private final CommentRepository commentRepository;
     private final PostRepository postRepository;
 
-    // 댓글 목록 조회 (계층형 - 원댓글 + 대댓글)
+    /**
+     * 댓글 목록 조회 (계층형 - 원댓글 + 대댓글)
+     */
     @Transactional(readOnly = true)
     public List<CommentResponseDto> getComments(Integer postId) {
         Post post = postRepository.findById(postId)
                 .orElseThrow(() -> new IllegalArgumentException("NOT_FOUND"));
 
-        // [수정] postId 숫자 대신 post 객체를 넘겨 조회 (Repository 메서드명 확인 필요)
+        // 게시글에 달린 모든 댓글 조회
         List<Comment> all = commentRepository.findAllByPostOrderByCreatedDateAsc(post);
 
-        // 원댓글 Map 구성
+        // 1. 원댓글(parent가 null인 경우)들만 먼저 DTO로 변환하여 Map 구성
         Map<Integer, CommentResponseDto> parentMap = all.stream()
-                .filter(c -> c.getParentCommentId() == null)
+                .filter(c -> c.getParent() == null) // [수정] getParentCommentId() 대신 getParent() 사용
                 .collect(Collectors.toMap(
                         Comment::getCommentId,
                         CommentResponseDto::new,
@@ -40,49 +42,61 @@ public class CommentService {
                         java.util.LinkedHashMap::new
                 ));
 
-        // 대댓글 → 원댓글에 붙이기
+        // 2. 대댓글(parent가 있는 경우)들을 찾아서 부모 DTO의 replies 리스트에 추가
         all.stream()
-                .filter(c -> c.getParentCommentId() != null)
+                .filter(c -> c.getParent() != null) // [수정]
                 .forEach(c -> {
-                    CommentResponseDto parent = parentMap.get(c.getParentCommentId());
-                    if (parent != null) parent.addReply(new CommentResponseDto(c));
+                    // c.getParent().getCommentId()를 통해 부모 ID를 가져옴
+                    CommentResponseDto parentDto = parentMap.get(c.getParent().getCommentId());
+                    if (parentDto != null) {
+                        parentDto.addReply(new CommentResponseDto(c));
+                    }
                 });
 
         return List.copyOf(parentMap.values());
     }
 
-    // BRD04 - 댓글 작성
+    /**
+     * 원댓글 작성
+     */
     @Transactional
     public CommentResponseDto writeComment(Integer postId, String userId, CommentRequestDto dto) {
         Post post = postRepository.findById(postId)
                 .orElseThrow(() -> new IllegalArgumentException("NOT_FOUND"));
 
-        // [수정] Comment.create에 postId 대신 post 객체 전달
         Comment comment = commentRepository.save(Comment.create(post, userId, dto.getCommentDetail()));
 
         post.incrementCommentCount();
-        // postRepository.save(post); // Dirty Checking으로 자동 반영되므로 생략 가능
         return new CommentResponseDto(comment);
     }
 
-    // BRD05 - 대댓글 작성
+    /**
+     * 대댓글 작성
+     */
     @Transactional
     public CommentResponseDto writeReply(Integer postId, Integer parentCommentId, String userId, CommentRequestDto dto) {
         Post post = postRepository.findById(postId)
                 .orElseThrow(() -> new IllegalArgumentException("NOT_FOUND"));
 
-        commentRepository.findById(parentCommentId)
-                .filter(c -> c.getParentCommentId() == null) // 대댓글에 대댓글 방지
-                .orElseThrow(() -> new IllegalArgumentException("INVALID_PARENT"));
+        // 부모 댓글 객체를 직접 찾음
+        Comment parentComment = commentRepository.findById(parentCommentId)
+                .orElseThrow(() -> new IllegalArgumentException("부모 댓글이 존재하지 않습니다."));
 
-        // [수정] Comment.createReply에 postId 대신 post 객체 전달
-        Comment reply = commentRepository.save(Comment.createReply(post, userId, parentCommentId, dto.getCommentDetail()));
+        // 대댓글의 대댓글 방지 (부모가 이미 대댓글인 경우 차단)
+        if (parentComment.getParent() != null) {
+            throw new IllegalArgumentException("대댓글에는 답글을 달 수 없습니다.");
+        }
+
+        // [수정] 부모 ID 대신 부모 '객체'를 전달
+        Comment reply = commentRepository.save(Comment.createReply(post, userId, parentComment, dto.getCommentDetail()));
 
         post.incrementCommentCount();
         return new CommentResponseDto(reply);
     }
 
-    // BRD06 - 댓글 수정
+    /**
+     * 댓글 수정
+     */
     @Transactional
     public CommentResponseDto updateComment(Integer commentId, String userId, CommentRequestDto dto) {
         Comment comment = commentRepository.findById(commentId)
@@ -93,10 +107,12 @@ public class CommentService {
         }
 
         comment.update(dto.getCommentDetail());
-        return new CommentResponseDto(comment); // save 호출 없이도 Dirty Checking으로 업데이트됨
+        return new CommentResponseDto(comment);
     }
 
-    // BRD06 - 댓글 삭제
+    /**
+     * 댓글 삭제
+     */
     @Transactional
     public void deleteComment(Integer commentId, String userId) {
         Comment comment = commentRepository.findById(commentId)
@@ -106,9 +122,10 @@ public class CommentService {
             throw new SecurityException("FORBIDDEN");
         }
 
-        // [수정] comment.getPost()를 통해 바로 Post 객체에 접근 가능
         Post post = comment.getPost();
 
+        // 자식(대댓글)이 있는 경우 cascade 설정에 의해 자동 삭제되거나,
+        // 로직에 따라 처리 (여기서는 JPA가 자동 처리하도록 함)
         commentRepository.delete(comment);
         post.decrementCommentCount();
     }
