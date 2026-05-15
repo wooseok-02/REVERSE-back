@@ -1,7 +1,9 @@
 package com.reverse.nsu.entity;
 
 import jakarta.persistence.*;
+import lombok.AccessLevel;
 import lombok.Getter;
+import lombok.NoArgsConstructor;
 import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.UpdateTimestamp;
 import java.time.LocalDateTime;
@@ -9,14 +11,17 @@ import java.time.LocalDateTime;
 @Entity
 @Table(name = "COMMENT")
 @Getter
+@NoArgsConstructor(access = AccessLevel.PROTECTED) // JPA 기본 생성자 보안 설정
 public class Comment {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Integer commentId;
 
-    @Column(nullable = false)
-    private Integer postId;
+    // [핵심 수정] 단순 Integer가 아니라 Post 객체와 연관관계를 맺어야 합니다.
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "postId", nullable = false)
+    private Post post;
 
     @Column(nullable = false, length = 15)
     private String userId;
@@ -34,26 +39,25 @@ public class Comment {
     @UpdateTimestamp
     private LocalDateTime modifiedDate;
 
-    // 댓글 작성
-    public static Comment create(Integer postId, String userId, String commentDetail) {
+    // [수정] 비즈니스 로직 - Integer postId 대신 Post 객체를 받도록 변경
+    public static Comment create(Post post, String userId, String commentDetail) {
         Comment comment = new Comment();
-        comment.postId = postId;
+        comment.post = post;
         comment.userId = userId;
         comment.commentDetail = commentDetail;
         return comment;
     }
 
-    // 대댓글 작성
-    public static Comment createReply(Integer postId, String userId, Integer parentCommentId, String commentDetail) {
+    // [수정] 대댓글 작성 로직
+    public static Comment createReply(Post post, String userId, Integer parentCommentId, String commentDetail) {
         Comment comment = new Comment();
-        comment.postId = postId;
+        comment.post = post;
         comment.userId = userId;
         comment.parentCommentId = parentCommentId;
         comment.commentDetail = commentDetail;
         return comment;
     }
 
-    // 댓글 수정
     public void update(String commentDetail) {
         this.commentDetail = commentDetail;
     }

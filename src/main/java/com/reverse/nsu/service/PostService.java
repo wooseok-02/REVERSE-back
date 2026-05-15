@@ -2,6 +2,8 @@ package com.reverse.nsu.service;
 
 import com.reverse.nsu.dto.NoticeAdminRequestDto;
 import com.reverse.nsu.entity.Post;
+import com.reverse.nsu.entity.PostAttached;
+import com.reverse.nsu.repository.PostAttachedRepository; // 추가 필요
 import com.reverse.nsu.repository.PostRepository;
 import com.reverse.nsu.repository.UsersRepository;
 import lombok.RequiredArgsConstructor;
@@ -12,7 +14,9 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 @Service
 @Slf4j
@@ -21,19 +25,30 @@ public class PostService {
 
     private final PostRepository postRepository;
     private final UsersRepository usersRepository;
+    private final PostAttachedRepository postAttachedRepository; // 추가
 
     /**
-     * 게시글 작성
+     * 게시글 작성 (이미지 저장 로직 추가)
      */
     @Transactional
     public Integer createPost(NoticeAdminRequestDto dto, String userId, Integer boardId) {
         validateDto(dto);
         Post post = Post.createPost(dto, userId, boardId);
-        return postRepository.save(post).getPostId();
+        Post savedPost = postRepository.save(post);
+
+        // [추가] 종호 님이 보낸 이미지 URL 리스트가 있다면 저장
+        if (dto.getImageUrls() != null && !dto.getImageUrls().isEmpty()) {
+            List<PostAttached> images = dto.getImageUrls().stream()
+                    .map(url -> PostAttached.create(savedPost, userId, url))
+                    .collect(Collectors.toList());
+            postAttachedRepository.saveAll(images);
+        }
+
+        return savedPost.getPostId();
     }
 
     /**
-     * 게시글 수정
+     * 게시글 수정 (이미지 수정 로직 추가)
      */
     @Transactional
     public void updatePost(Integer postId, NoticeAdminRequestDto dto, String userId) {
@@ -43,54 +58,57 @@ public class PostService {
         }
         validateDto(dto);
         post.update(dto);
+
+        // [추가] 기존 이미지 삭제 후 새로운 이미지 저장 (간단한 구현 방식)
+        if (dto.getImageUrls() != null) {
+            postAttachedRepository.deleteAllByPost(post); // 해당 메서드 Repository에 추가 필요
+            List<PostAttached> images = dto.getImageUrls().stream()
+                    .map(url -> PostAttached.create(post, userId, url))
+                    .collect(Collectors.toList());
+            postAttachedRepository.saveAll(images);
+        }
     }
 
     /**
-     * 게시글 삭제
+     * 게시글 삭제 (Post.java의 CascadeType.ALL 덕분에 코드는 그대로 유지)
      */
     @Transactional
     public void deletePost(Integer postId, String userId) {
         Post post = findPostOrThrow(postId);
-        // 작성자 본인 확인 또는 관리자(ADMIN) 권한 확인
         if (!post.getUserId().equals(userId) && !userId.equals("ADMIN")) {
             throw new IllegalStateException("삭제 권한이 없습니다.");
         }
+        // 이 한 줄로 Comment, PostLike, PostAttached가 모두 삭제됩니다.
         postRepository.delete(post);
     }
 
     /**
-     * 게시글 목록 조회 및 검색 (카테고리 필터링 및 boardId 필터링 강화)
+     * 게시글 목록 조회 (기존 로직 유지)
      */
     @Transactional(readOnly = true)
     public Page<Post> searchPosts(Integer boardId, String category, String type, String keyword, Pageable pageable, String userId) {
-        // 로그인 여부 확인
         boolean isLoggedIn = (userId != null && usersRepository.existsById(userId));
 
-        // [핵심 수정] 프론트에서 "전체"를 보낼 경우 필터링을 하지 않도록 처리
         if ("전체".equals(category) || (category != null && category.trim().isEmpty())) {
             category = null;
         }
 
-        // 1. 카테고리 필터링 (검색어가 없고 특정 카테고리만 선택된 경우)
         if ((keyword == null || keyword.trim().isEmpty()) && category != null) {
             return isLoggedIn ?
                     postRepository.findAllByBoardIdAndPostCategoryOrderByCreatedDateDesc(boardId, category, pageable) :
                     postRepository.findAllByBoardIdAndPostCategoryAndIsExternalTrueOrderByCreatedDateDesc(boardId, category, pageable);
         }
 
-        // 2. 검색어 제한 (2글자 미만 체크)
         if (keyword != null && !keyword.trim().isEmpty() && keyword.trim().length() < 2) {
             throw new IllegalArgumentException("검색어는 최소 2글자 이상 입력해 주세요.");
         }
 
-        // 3. 검색어가 없는 경우 (일반 목록 조회)
         if (keyword == null || keyword.trim().isEmpty()) {
             return isLoggedIn ?
                     postRepository.findAllByBoardIdOrderByCreatedDateDesc(boardId, pageable) :
                     postRepository.findAllByBoardIdAndIsExternalTrueOrderByCreatedDateDesc(boardId, pageable);
         }
 
-        // 4. 검색어가 있는 경우 (타입별 검색)
         String searchType = (type != null) ? type : "all";
         return switch (searchType) {
             case "title" -> isLoggedIn ?
@@ -112,7 +130,7 @@ public class PostService {
     }
 
     /**
-     * 게시글 단건 조회
+     * 게시글 단건 조회 (상세 조회용)
      */
     @Transactional(readOnly = true)
     public Post getPostById(Integer postId) {
@@ -120,16 +138,13 @@ public class PostService {
     }
 
     /**
-     * 나의 게시글 목록 확인 (마이페이지용)
+     * 마이페이지 관련 로직 (기존 유지)
      */
     @Transactional(readOnly = true)
     public Page<Post> getMyPosts(String userId, Pageable pageable) {
         return postRepository.findAllByUserIdOrderByCreatedDateDesc(userId, pageable);
     }
 
-    /**
-     * 나의 통계 정보 조회 (마이페이지용)
-     */
     @Transactional(readOnly = true)
     public Map<String, Object> getMyPostStats(String userId) {
         Map<String, Object> stats = new HashMap<>();

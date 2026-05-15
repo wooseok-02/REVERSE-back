@@ -3,7 +3,6 @@ package com.reverse.nsu.service;
 import com.reverse.nsu.dto.BoardPostListResponseDto;
 import com.reverse.nsu.dto.BoardPostResponseDto;
 import com.reverse.nsu.entity.Post;
-import com.reverse.nsu.entity.PostAttached;
 import com.reverse.nsu.entity.PostLike;
 import com.reverse.nsu.repository.BoardRepository;
 import com.reverse.nsu.repository.PostAttachedRepository;
@@ -18,10 +17,10 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 import java.util.Optional;
-import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
+@Transactional(readOnly = true) // 기본적으로 읽기 전용 설정
 public class BoardService {
 
     private final PostRepository postRepository;
@@ -33,7 +32,6 @@ public class BoardService {
 
     private Integer getBoardId() {
         if (boardId == null) {
-            // .getBoardId() 호출 위치를 안전하게 조정
             boardId = boardRepository.findByBoardName("게시판")
                     .orElseThrow(() -> new RuntimeException("게시판이 존재하지 않습니다."))
                     .getBoardId();
@@ -41,7 +39,7 @@ public class BoardService {
         return boardId;
     }
 
-    // 목록 조회 (동건 님이 설정하신 6개 페이징 유지)
+    // 목록 조회
     public Page<BoardPostListResponseDto> getAll(int page) {
         Pageable pageable = PageRequest.of(page, 6);
         return postRepository.findAllByBoardIdOrderByCreatedDateDesc(getBoardId(), pageable)
@@ -54,11 +52,9 @@ public class BoardService {
                 .filter(p -> p.getBoardId().equals(getBoardId()))
                 .orElseThrow(() -> new IllegalArgumentException("NOT_FOUND"));
 
-        // [수정] Repository의 변경된 메서드명(findAllByPost_PostId) 호출
-        List<String> imageUrls = postAttachedRepository.findAllByPost_PostId(postId)
-                .stream()
-                .map(PostAttached::getAttachedUrl)
-                .collect(Collectors.toList());
+        // [수정] 외부 리포지토리를 복잡하게 부를 필요 없이,
+        // Post 엔티티가 들고 있는 이미지 리스트를 바로 활용합니다.
+        List<String> imageUrls = post.getImageUrlList();
 
         return BoardPostResponseDto.from(post, imageUrls);
     }
@@ -70,19 +66,17 @@ public class BoardService {
                 .filter(p -> p.getBoardId().equals(getBoardId()))
                 .orElseThrow(() -> new IllegalArgumentException("NOT_FOUND"));
 
-        // [수정] Repository의 변경된 메서드명(findByUserIdAndPost_PostId) 호출
-        Optional<PostLike> existing = postLikeRepository.findByUserIdAndPost_PostId(userId, postId);
+        // [수정] PostId(Integer) 대신 Post 객체 자체를 넘겨서 조회하도록 통일합니다.
+        // PostLikeRepository에 findByUserIdAndPost(String userId, Post post) 가 있어야 합니다.
+        Optional<PostLike> existing = postLikeRepository.findByUserIdAndPost(userId, post);
 
         if (existing.isPresent()) {
             postLikeRepository.delete(existing.get());
             post.decrementLikeCount();
-            postRepository.save(post);
             return false;
         } else {
-            // Post 객체를 직접 넘기는 구조 유지
             postLikeRepository.save(PostLike.create(post, userId));
             post.incrementLikeCount();
-            postRepository.save(post);
             return true;
         }
     }
