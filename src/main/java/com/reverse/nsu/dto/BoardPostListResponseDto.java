@@ -8,6 +8,7 @@ import java.util.List;
 public class BoardPostListResponseDto {
     private final Integer postId;
     private final String title;
+    private final String category;
     private final String userId;
     private final String createdAt;
     private final Integer commentCount;
@@ -19,6 +20,7 @@ public class BoardPostListResponseDto {
     public BoardPostListResponseDto(Post post) {
         this.postId = post.getPostId();
         this.title = post.getPostTitle();
+        this.category = post.getPostCategory();
         this.userId = post.getUserId();
         this.createdAt = post.getCreatedDate().toLocalDate().toString();
         this.commentCount = post.getPostCommentCount();
