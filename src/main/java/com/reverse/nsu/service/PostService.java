@@ -3,9 +3,7 @@ package com.reverse.nsu.service;
 import com.reverse.nsu.dto.NoticeAdminRequestDto;
 import com.reverse.nsu.entity.Post;
 import com.reverse.nsu.entity.PostAttached;
-import com.reverse.nsu.repository.PostAttachedRepository; // 추가 필요
-import com.reverse.nsu.repository.PostRepository;
-import com.reverse.nsu.repository.UsersRepository;
+import com.reverse.nsu.repository.*; // Repository들 한 번에 관리
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
@@ -25,10 +23,12 @@ public class PostService {
 
     private final PostRepository postRepository;
     private final UsersRepository usersRepository;
-    private final PostAttachedRepository postAttachedRepository; // 추가
+    private final PostAttachedRepository postAttachedRepository;
+    private final PostLikeRepository postLikeRepository; // [추가] 좋아요 삭제용
+    private final CommentRepository commentRepository;   // [추가] 댓글/대댓글 삭제용
 
     /**
-     * 게시글 작성 (이미지 저장 로직 추가)
+     * 게시글 작성
      */
     @Transactional
     public Integer createPost(NoticeAdminRequestDto dto, String userId, Integer boardId) {
@@ -36,7 +36,6 @@ public class PostService {
         Post post = Post.createPost(dto, userId, boardId);
         Post savedPost = postRepository.save(post);
 
-        // [추가] 종호 님이 보낸 이미지 URL 리스트가 있다면 저장
         if (dto.getImageUrls() != null && !dto.getImageUrls().isEmpty()) {
             List<PostAttached> images = dto.getImageUrls().stream()
                     .map(url -> PostAttached.create(savedPost, userId, url))
@@ -48,7 +47,7 @@ public class PostService {
     }
 
     /**
-     * 게시글 수정 (이미지 수정 로직 추가)
+     * 게시글 수정
      */
     @Transactional
     public void updatePost(Integer postId, NoticeAdminRequestDto dto, String userId) {
@@ -59,9 +58,9 @@ public class PostService {
         validateDto(dto);
         post.update(dto);
 
-        // [추가] 기존 이미지 삭제 후 새로운 이미지 저장 (간단한 구현 방식)
         if (dto.getImageUrls() != null) {
-            postAttachedRepository.deleteAllByPost(post); // 해당 메서드 Repository에 추가 필요
+            // [수정] PostId(Integer)가 아닌 Post(객체)로 삭제
+            postAttachedRepository.deleteAllByPost(post);
             List<PostAttached> images = dto.getImageUrls().stream()
                     .map(url -> PostAttached.create(post, userId, url))
                     .collect(Collectors.toList());
@@ -70,20 +69,33 @@ public class PostService {
     }
 
     /**
-     * 게시글 삭제 (Post.java의 CascadeType.ALL 덕분에 코드는 그대로 유지)
+     * 게시글 삭제 (중요: 대댓글/댓글/좋아요 순차 삭제 반영)
      */
     @Transactional
     public void deletePost(Integer postId, String userId) {
         Post post = findPostOrThrow(postId);
+
+        // 관리자 권한 확인 로직 (userId가 "ADMIN"이거나 실제 작성자인 경우)
         if (!post.getUserId().equals(userId) && !userId.equals("ADMIN")) {
             throw new IllegalStateException("삭제 권한이 없습니다.");
         }
-        // 이 한 줄로 Comment, PostLike, PostAttached가 모두 삭제됩니다.
+
+        // [순서 수정] DB 제약 조건 해결을 위해 자식 데이터부터 명시적 삭제
+        // 1. 좋아요 삭제
+        postLikeRepository.deleteAllByPost(post);
+
+        // 2. 이미지 삭제
+        postAttachedRepository.deleteAllByPost(post);
+
+        // 3. 댓글 및 대댓글 삭제 (Comment 엔티티의 Cascade 설정과 협업)
+        commentRepository.deleteAllByPost(post);
+
+        // 4. 최종 게시글 삭제
         postRepository.delete(post);
     }
 
     /**
-     * 게시글 목록 조회 (기존 로직 유지)
+     * 게시글 목록 조회
      */
     @Transactional(readOnly = true)
     public Page<Post> searchPosts(Integer boardId, String category, String type, String keyword, Pageable pageable, String userId) {
@@ -129,17 +141,11 @@ public class PostService {
         };
     }
 
-    /**
-     * 게시글 단건 조회 (상세 조회용)
-     */
     @Transactional(readOnly = true)
     public Post getPostById(Integer postId) {
         return findPostOrThrow(postId);
     }
 
-    /**
-     * 마이페이지 관련 로직 (기존 유지)
-     */
     @Transactional(readOnly = true)
     public Page<Post> getMyPosts(String userId, Pageable pageable) {
         return postRepository.findAllByUserIdOrderByCreatedDateDesc(userId, pageable);
