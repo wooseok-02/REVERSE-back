@@ -8,6 +8,7 @@ import lombok.NoArgsConstructor;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.stream.Collectors;
 
 @Entity
 @Table(name = "POST")
@@ -52,33 +53,45 @@ public class Post {
     @Column(name = "isExternal", nullable = false)
     private Boolean isExternal = false;
 
-    // --- 연관관계 설정 (삭제 에러 해결) ---
+    // --- 연관관계 설정 (삭제 에러 해결의 핵심) ---
 
-    // 게시글 삭제 시 해당 게시글의 좋아요 데이터도 자동 삭제
+    // 1. 좋아요 데이터 자동 삭제
     @OneToMany(mappedBy = "post", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<PostLike> postLikes = new ArrayList<>();
 
-    // 게시글 삭제 시 해당 게시글의 첨부파일 데이터도 자동 삭제
+    // 2. 첨부파일(이미지) 데이터 자동 삭제
     @OneToMany(mappedBy = "post", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<PostAttached> attachedFiles = new ArrayList<>();
 
-    // --- 가상 Getter ---
+    // 3. 댓글 및 대댓글 데이터 자동 삭제 (종호 님이 말한 FK 에러 해결)
+    @OneToMany(mappedBy = "post", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<Comment> comments = new ArrayList<>();
+
+    // --- 가상 Getter & 편의 메서드 ---
+
     @Transient
     public boolean getIsModified() {
         return this.modifiedDate != null;
     }
 
+    /**
+     * [수정] attachedFiles에서 URL만 뽑아서 리스트로 반환
+     * attachedUrl 필드명을 사용하도록 수정하여 빨간 줄을 해결했습니다.
+     */
+    @Transient
+    public List<String> getImageUrlList() {
+        if (this.attachedFiles == null) return new ArrayList<>();
+        return this.attachedFiles.stream()
+                .map(PostAttached::getAttachedUrl)
+                .collect(Collectors.toList());
+    }
+
     // --- 비즈니스 로직 ---
 
-    /**
-     * 게시글 생성 정적 팩토리 메서드
-     * [참고] 이제 토큰을 통해 검증된 userId만 넘어오게 됩니다.
-     */
     public static Post createPost(NoticeAdminRequestDto dto, String userId, Integer boardId) {
         Post post = new Post();
         post.userId = userId;
         post.boardId = boardId;
-        // "전체" 카테고리로 저장되는 것을 방지하기 위한 기본값 처리
         post.postCategory = (dto.getCategory() != null && !dto.getCategory().equals("전체"))
                 ? dto.getCategory() : "동아리 활동";
         post.postTitle = dto.getTitle();
@@ -103,7 +116,6 @@ public class Post {
     public void update(NoticeAdminRequestDto dto) {
         this.postTitle = dto.getTitle();
         this.postContents = dto.getContent();
-        // 수정 시에도 "전체" 카테고리가 텍스트로 박히는 것을 방지
         if (dto.getCategory() != null && !dto.getCategory().equals("전체")) {
             this.postCategory = dto.getCategory();
         }
