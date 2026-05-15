@@ -6,10 +6,7 @@ import com.reverse.nsu.dto.NoticeListResponseDto;
 import com.reverse.nsu.dto.NoticeResponseDto;
 import com.reverse.nsu.entity.Post;
 import com.reverse.nsu.entity.PostAttached;
-import com.reverse.nsu.repository.BoardRepository;
-import com.reverse.nsu.repository.PostAttachedRepository;
-import com.reverse.nsu.repository.PostRepository;
-import com.reverse.nsu.repository.UsersRepository;
+import com.reverse.nsu.repository.*;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
@@ -32,6 +29,7 @@ public class NoticeService {
     private final BoardRepository boardRepository;
     private final PostAttachedRepository postAttachedRepository;
     private final UsersRepository usersRepository;
+    private final PostLikeRepository postLikeRepository;
 
     private Integer noticeBoardId;
 
@@ -70,7 +68,8 @@ public class NoticeService {
             throw new SecurityException("FORBIDDEN");
         }
 
-        List<String> imageUrls = getAttachedImageUrls(postId);
+        // 객체 내 이미지 리스트 반환
+        List<String> imageUrls = post.getImageUrlList();
         return NoticeResponseDto.from(post, imageUrls);
     }
 
@@ -80,19 +79,20 @@ public class NoticeService {
         Post post = Post.createPost(dto, userId, getNoticeBoardId());
         Post savedPost = postRepository.save(post);
 
-        List<String> imageUrls = Collections.emptyList();
+        // 이미지 저장
         if (dto.getImageUrls() != null && !dto.getImageUrls().isEmpty()) {
             saveAttachedImages(savedPost, userId, dto.getImageUrls());
-            imageUrls = dto.getImageUrls();
         }
-        return new NoticeAdminResponseDto(savedPost, imageUrls);
+
+        // [수정] 1차 캐시 문제 해결을 위해 dto의 URL을 직접 사용
+        List<String> responseUrls = dto.getImageUrls() != null ? dto.getImageUrls() : Collections.emptyList();
+        return new NoticeAdminResponseDto(savedPost, responseUrls);
     }
 
     @Transactional
     public NoticeAdminResponseDto update(NoticeAdminRequestDto dto, String userId) {
         validateDto(dto);
 
-        // [핵심 수정] dto.getNoticeId() 대신 변경된 dto.getPostId()를 사용합니다.
         Post post = postRepository.findById(dto.getPostId())
                 .filter(p -> p.getBoardId().equals(getNoticeBoardId()))
                 .orElseThrow(() -> new RuntimeException("NOT_FOUND"));
@@ -100,15 +100,17 @@ public class NoticeService {
         if (hasAdminPrivilege(userId) || post.getUserId().equals(userId)) {
             post.update(dto);
             if (dto.getImageUrls() != null) {
-                postAttachedRepository.deleteAllByPost_PostId(post.getPostId());
+                // [수정] 리포지토리 메서드명 변경 반영 (PostId -> Post 객체)
+                postAttachedRepository.deleteAllByPost(post);
                 saveAttachedImages(post, userId, dto.getImageUrls());
             }
         } else {
             throw new RuntimeException("수정 권한이 없습니다.");
         }
 
-        List<String> currentUrls = getAttachedImageUrls(post.getPostId());
-        return new NoticeAdminResponseDto(post, currentUrls);
+        // [수정] 업데이트 직후 최신 URL 리스트 반환
+        List<String> responseUrls = dto.getImageUrls() != null ? dto.getImageUrls() : Collections.emptyList();
+        return new NoticeAdminResponseDto(post, responseUrls);
     }
 
     @Transactional
@@ -118,7 +120,11 @@ public class NoticeService {
                 .orElseThrow(() -> new RuntimeException("NOT_FOUND"));
 
         if (hasAdminPrivilege(userId) || post.getUserId().equals(userId)) {
-            postRepository.delete(post);
+            // [테스트 핵심] 자식 데이터부터 순서대로 지워야 함!
+            postLikeRepository.deleteAllByPost(post);    // 1. 좋아요 먼저
+            postAttachedRepository.deleteAllByPost(post); // 2. 이미지 먼저
+
+            postRepository.delete(post);                  // 3. 마지막에 게시글
         } else {
             throw new RuntimeException("삭제 권한이 없습니다.");
         }
@@ -136,13 +142,6 @@ public class NoticeService {
         urls.forEach(url ->
                 postAttachedRepository.save(PostAttached.create(post, userId, url))
         );
-    }
-
-    private List<String> getAttachedImageUrls(Integer postId) {
-        return postAttachedRepository.findAllByPost_PostId(postId)
-                .stream()
-                .map(PostAttached::getAttachedUrl)
-                .collect(Collectors.toList());
     }
 
     private boolean hasAdminPrivilege(String userId) {

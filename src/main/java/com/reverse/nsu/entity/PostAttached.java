@@ -19,7 +19,6 @@ public class PostAttached {
     @Column(name = "userId", nullable = false, length = 15)
     private String userId;
 
-    // [수정] 단순 ID가 아니라 Post 객체와 연관관계를 맺어야 합니다.
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "postId", nullable = false)
     private Post post;
@@ -27,6 +26,7 @@ public class PostAttached {
     @Column(name = "attachedName", nullable = false, length = 260)
     private String attachedName;
 
+    // [확인] 필드명을 attachedUrl로 유지하겠습니다.
     @Column(name = "attachedUrl", nullable = false, columnDefinition = "TEXT")
     private String attachedUrl;
 
@@ -37,19 +37,31 @@ public class PostAttached {
     private LocalDateTime createdDate = LocalDateTime.now();
 
     @Column(name = "modifiedDate")
-    private LocalDateTime modifiedDate = LocalDateTime.now();
+    private LocalDateTime modifiedDate; // 생성 시점에 자동 할당되므로 초기화 제거 가능
 
     /**
      * 첨부파일 생성 정적 팩토리 메서드
      */
     public static PostAttached create(Post post, String userId, String url) {
         PostAttached pa = new PostAttached();
-        pa.post = post; // 객체 주입
+        pa.post = post;
         pa.userId = userId;
         pa.attachedUrl = url;
-        // URL에서 파일명 추출 로직 (안정성을 위해 null 체크 추가 권장)
-        pa.attachedName = url != null && url.contains("/") ? url.substring(url.lastIndexOf("/") + 1) : "unknown";
+        // 파일명 추출 로직 보완 (쿼리 파라미터 등이 붙을 경우 대비)
+        pa.attachedName = extractFileName(url);
         pa.attachedSize = 0;
+        pa.createdDate = LocalDateTime.now();
         return pa;
+    }
+
+    private static String extractFileName(String url) {
+        if (url == null || url.isEmpty()) return "unknown";
+        try {
+            String fileName = url.substring(url.lastIndexOf("/") + 1);
+            // URL에 ? 파라미터가 붙어있을 경우 제거 (S3 URL 등 대비)
+            return fileName.contains("?") ? fileName.substring(0, fileName.indexOf("?")) : fileName;
+        } catch (Exception e) {
+            return "unknown";
+        }
     }
 }
