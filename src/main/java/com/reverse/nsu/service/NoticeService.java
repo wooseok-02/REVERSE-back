@@ -6,7 +6,6 @@ import com.reverse.nsu.dto.NoticeListResponseDto;
 import com.reverse.nsu.dto.NoticeResponseDto;
 import com.reverse.nsu.entity.Post;
 import com.reverse.nsu.entity.PostAttached;
-import com.reverse.nsu.entity.Users;
 import com.reverse.nsu.repository.BoardRepository;
 import com.reverse.nsu.repository.PostAttachedRepository;
 import com.reverse.nsu.repository.PostRepository;
@@ -38,7 +37,6 @@ public class NoticeService {
 
     private Integer getNoticeBoardId() {
         if (noticeBoardId == null) {
-            // [해결] .getBoardId()를 호출하여 Integer 타입을 반환하도록 수정
             noticeBoardId = boardRepository.findByBoardName("공지사항")
                     .orElseThrow(() -> new RuntimeException("공지사항 게시판이 존재하지 않습니다."))
                     .getBoardId();
@@ -47,11 +45,11 @@ public class NoticeService {
     }
 
     public Page<NoticeListResponseDto> getAll(String category, boolean isLoggedIn, int page) {
-        Pageable pageable = PageRequest.of(page, 10);
+        Pageable pageable = PageRequest.of(page, 6);
         Integer boardId = getNoticeBoardId();
         Page<Post> posts;
 
-        if (category != null && !category.trim().isEmpty()) {
+        if (category != null && !category.trim().isEmpty() && !category.equals("전체")) {
             posts = isLoggedIn ?
                     postRepository.findAllByBoardIdAndPostCategoryOrderByCreatedDateDesc(boardId, category, pageable) :
                     postRepository.findAllByBoardIdAndPostCategoryAndIsExternalTrueOrderByCreatedDateDesc(boardId, category, pageable);
@@ -63,8 +61,8 @@ public class NoticeService {
         return posts.map(NoticeListResponseDto::new);
     }
 
-    public NoticeResponseDto getOne(Integer noticeId, boolean isLoggedIn) {
-        Post post = postRepository.findById(noticeId)
+    public NoticeResponseDto getOne(Integer postId, boolean isLoggedIn) {
+        Post post = postRepository.findById(postId)
                 .filter(p -> p.getBoardId().equals(getNoticeBoardId()))
                 .orElseThrow(() -> new IllegalArgumentException("NOT_FOUND"));
 
@@ -72,7 +70,7 @@ public class NoticeService {
             throw new SecurityException("FORBIDDEN");
         }
 
-        List<String> imageUrls = getAttachedImageUrls(noticeId);
+        List<String> imageUrls = getAttachedImageUrls(postId);
         return NoticeResponseDto.from(post, imageUrls);
     }
 
@@ -84,7 +82,7 @@ public class NoticeService {
 
         List<String> imageUrls = Collections.emptyList();
         if (dto.getImageUrls() != null && !dto.getImageUrls().isEmpty()) {
-            saveAttachedImages(savedPost.getPostId(), userId, dto.getImageUrls());
+            saveAttachedImages(savedPost, userId, dto.getImageUrls());
             imageUrls = dto.getImageUrls();
         }
         return new NoticeAdminResponseDto(savedPost, imageUrls);
@@ -93,40 +91,39 @@ public class NoticeService {
     @Transactional
     public NoticeAdminResponseDto update(NoticeAdminRequestDto dto, String userId) {
         validateDto(dto);
-        Post post = postRepository.findById(dto.getNoticeId())
+
+        // [핵심 수정] dto.getNoticeId() 대신 변경된 dto.getPostId()를 사용합니다.
+        Post post = postRepository.findById(dto.getPostId())
                 .filter(p -> p.getBoardId().equals(getNoticeBoardId()))
                 .orElseThrow(() -> new RuntimeException("NOT_FOUND"));
 
-        // [해결] 관리자(1, 2)이거나 작성자 본인일 때만 수정 허용
         if (hasAdminPrivilege(userId) || post.getUserId().equals(userId)) {
             post.update(dto);
             if (dto.getImageUrls() != null) {
-                postAttachedRepository.deleteAllByPostId(post.getPostId());
-                saveAttachedImages(post.getPostId(), userId, dto.getImageUrls());
+                postAttachedRepository.deleteAllByPost_PostId(post.getPostId());
+                saveAttachedImages(post, userId, dto.getImageUrls());
             }
         } else {
             throw new RuntimeException("수정 권한이 없습니다.");
         }
 
-        return new NoticeAdminResponseDto(post, dto.getImageUrls() != null ? dto.getImageUrls() : Collections.emptyList());
+        List<String> currentUrls = getAttachedImageUrls(post.getPostId());
+        return new NoticeAdminResponseDto(post, currentUrls);
     }
 
     @Transactional
-    public Post delete(Integer noticeId, String userId) {
-        Post post = postRepository.findById(noticeId)
+    public Post delete(Integer postId, String userId) {
+        Post post = postRepository.findById(postId)
                 .filter(p -> p.getBoardId().equals(getNoticeBoardId()))
                 .orElseThrow(() -> new RuntimeException("NOT_FOUND"));
 
         if (hasAdminPrivilege(userId) || post.getUserId().equals(userId)) {
-            postAttachedRepository.deleteAllByPostId(noticeId);
             postRepository.delete(post);
         } else {
             throw new RuntimeException("삭제 권한이 없습니다.");
         }
         return post;
     }
-
-    // --- Private Helper Methods ---
 
     private void validateDto(NoticeAdminRequestDto dto) {
         if (dto.getTitle() == null || dto.getTitle().trim().isEmpty() ||
@@ -135,14 +132,14 @@ public class NoticeService {
         }
     }
 
-    private void saveAttachedImages(Integer postId, String userId, List<String> urls) {
+    private void saveAttachedImages(Post post, String userId, List<String> urls) {
         urls.forEach(url ->
-                postAttachedRepository.save(PostAttached.create(postId, userId, url))
+                postAttachedRepository.save(PostAttached.create(post, userId, url))
         );
     }
 
     private List<String> getAttachedImageUrls(Integer postId) {
-        return postAttachedRepository.findAllByPostId(postId)
+        return postAttachedRepository.findAllByPost_PostId(postId)
                 .stream()
                 .map(PostAttached::getAttachedUrl)
                 .collect(Collectors.toList());

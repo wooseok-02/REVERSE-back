@@ -19,32 +19,45 @@ public class NoticeController {
     private final NoticeService noticeService;
     private final R2Service r2Service;
 
-    // 이미지 업로드 → URL 반환 (등록 전 먼저 호출)
+    // 인터셉터에서 유저 ID 추출 (로그인 여부 확인용)
+    private String resolveUserId(HttpServletRequest request) {
+        return (String) request.getAttribute("userId");
+    }
+
+    /**
+     * 이미지 업로드 → URL 반환
+     */
     @PostMapping("/image")
     public ResponseEntity<String> uploadImage(@RequestParam("file") MultipartFile file) throws IOException {
         return ResponseEntity.ok(r2Service.upload(file, "notice"));
     }
 
-    // 목록 조회
+    /**
+     * 목록 조회 (카테고리 필터링)
+     */
     @GetMapping
     public ResponseEntity<ApiResponse<Page<NoticeListResponseDto>>> getAll(
             @RequestParam(defaultValue = "전체") String category,
             @RequestParam(defaultValue = "0") int page,
             HttpServletRequest request
     ) {
-        boolean isLoggedIn = request.getAttribute("userId") != null;
+        // userId가 있으면 로그인 상태로 판단
+        boolean isLoggedIn = resolveUserId(request) != null;
         return ResponseEntity.ok(ApiResponse.ok(noticeService.getAll(category, isLoggedIn, page)));
     }
 
-    // 단건 조회
-    @GetMapping("/{noticeId}")
+    /**
+     * 단건 조회 (상세 보기)
+     * [수정] noticeId -> postId로 명칭 통일
+     */
+    @GetMapping("/{postId}")
     public ResponseEntity<ApiResponse<NoticeResponseDto>> getOne(
-            @PathVariable Integer noticeId,
+            @PathVariable Integer postId,
             HttpServletRequest request
     ) {
         try {
-            boolean isLoggedIn = request.getAttribute("userId") != null;
-            return ResponseEntity.ok(ApiResponse.ok(noticeService.getOne(noticeId, isLoggedIn)));
+            boolean isLoggedIn = resolveUserId(request) != null;
+            return ResponseEntity.ok(ApiResponse.ok(noticeService.getOne(postId, isLoggedIn)));
         } catch (SecurityException e) {
             return ResponseEntity.status(403)
                     .body(ApiResponse.error("FORBIDDEN", "공지사항은 회원가입된 사용자만 접근 가능합니다."));
