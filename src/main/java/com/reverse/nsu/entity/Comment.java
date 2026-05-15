@@ -7,18 +7,20 @@ import lombok.NoArgsConstructor;
 import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.UpdateTimestamp;
 import java.time.LocalDateTime;
+// [필수 추가] 아래 두 줄이 없어서 에러가 났던 거예요!
+import java.util.ArrayList;
+import java.util.List;
 
 @Entity
 @Table(name = "COMMENT")
 @Getter
-@NoArgsConstructor(access = AccessLevel.PROTECTED) // JPA 기본 생성자 보안 설정
+@NoArgsConstructor(access = AccessLevel.PROTECTED)
 public class Comment {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Integer commentId;
 
-    // [핵심 수정] 단순 Integer가 아니라 Post 객체와 연관관계를 맺어야 합니다.
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "postId", nullable = false)
     private Post post;
@@ -26,8 +28,13 @@ public class Comment {
     @Column(nullable = false, length = 15)
     private String userId;
 
-    @Column(name = "parentCommentId")
-    private Integer parentCommentId; // null = 원댓글, 값 있음 = 대댓글
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "parentCommentId")
+    private Comment parent;
+
+    // cascade 설정 덕분에 부모 삭제 시 대댓글도 자동 삭제됩니다.
+    @OneToMany(mappedBy = "parent", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<Comment> children = new ArrayList<>();
 
     @Column(nullable = false, length = 1500)
     private String commentDetail;
@@ -39,7 +46,7 @@ public class Comment {
     @UpdateTimestamp
     private LocalDateTime modifiedDate;
 
-    // [수정] 비즈니스 로직 - Integer postId 대신 Post 객체를 받도록 변경
+    // 원댓글 작성 로직
     public static Comment create(Post post, String userId, String commentDetail) {
         Comment comment = new Comment();
         comment.post = post;
@@ -48,12 +55,12 @@ public class Comment {
         return comment;
     }
 
-    // [수정] 대댓글 작성 로직
-    public static Comment createReply(Post post, String userId, Integer parentCommentId, String commentDetail) {
+    // 대댓글 작성 로직 (부모 Comment 객체를 직접 받음)
+    public static Comment createReply(Post post, String userId, Comment parent, String commentDetail) {
         Comment comment = new Comment();
         comment.post = post;
         comment.userId = userId;
-        comment.parentCommentId = parentCommentId;
+        comment.parent = parent;
         comment.commentDetail = commentDetail;
         return comment;
     }

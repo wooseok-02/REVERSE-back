@@ -17,7 +17,6 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.util.Collections;
 import java.util.List;
-import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -30,6 +29,8 @@ public class NoticeService {
     private final PostAttachedRepository postAttachedRepository;
     private final UsersRepository usersRepository;
     private final PostLikeRepository postLikeRepository;
+    // [추가] 대댓글 및 댓글 삭제를 위한 리포지토리 주입
+    private final CommentRepository commentRepository;
 
     private Integer noticeBoardId;
 
@@ -42,6 +43,9 @@ public class NoticeService {
         return noticeBoardId;
     }
 
+    /**
+     * 전체 공지사항 목록 조회
+     */
     public Page<NoticeListResponseDto> getAll(String category, boolean isLoggedIn, int page) {
         Pageable pageable = PageRequest.of(page, 6);
         Integer boardId = getNoticeBoardId();
@@ -59,6 +63,9 @@ public class NoticeService {
         return posts.map(NoticeListResponseDto::new);
     }
 
+    /**
+     * 공지사항 상세 조회
+     */
     public NoticeResponseDto getOne(Integer postId, boolean isLoggedIn) {
         Post post = postRepository.findById(postId)
                 .filter(p -> p.getBoardId().equals(getNoticeBoardId()))
@@ -68,27 +75,30 @@ public class NoticeService {
             throw new SecurityException("FORBIDDEN");
         }
 
-        // 객체 내 이미지 리스트 반환
         List<String> imageUrls = post.getImageUrlList();
         return NoticeResponseDto.from(post, imageUrls);
     }
 
+    /**
+     * 공지사항 작성
+     */
     @Transactional
     public NoticeAdminResponseDto create(NoticeAdminRequestDto dto, String userId) {
         validateDto(dto);
         Post post = Post.createPost(dto, userId, getNoticeBoardId());
         Post savedPost = postRepository.save(post);
 
-        // 이미지 저장
         if (dto.getImageUrls() != null && !dto.getImageUrls().isEmpty()) {
             saveAttachedImages(savedPost, userId, dto.getImageUrls());
         }
 
-        // [수정] 1차 캐시 문제 해결을 위해 dto의 URL을 직접 사용
         List<String> responseUrls = dto.getImageUrls() != null ? dto.getImageUrls() : Collections.emptyList();
         return new NoticeAdminResponseDto(savedPost, responseUrls);
     }
 
+    /**
+     * 공지사항 수정
+     */
     @Transactional
     public NoticeAdminResponseDto update(NoticeAdminRequestDto dto, String userId) {
         validateDto(dto);
@@ -100,7 +110,6 @@ public class NoticeService {
         if (hasAdminPrivilege(userId) || post.getUserId().equals(userId)) {
             post.update(dto);
             if (dto.getImageUrls() != null) {
-                // [수정] 리포지토리 메서드명 변경 반영 (PostId -> Post 객체)
                 postAttachedRepository.deleteAllByPost(post);
                 saveAttachedImages(post, userId, dto.getImageUrls());
             }
@@ -108,11 +117,13 @@ public class NoticeService {
             throw new RuntimeException("수정 권한이 없습니다.");
         }
 
-        // [수정] 업데이트 직후 최신 URL 리스트 반환
         List<String> responseUrls = dto.getImageUrls() != null ? dto.getImageUrls() : Collections.emptyList();
         return new NoticeAdminResponseDto(post, responseUrls);
     }
 
+    /**
+     * 공지사항 삭제 (핵심: 자식 데이터부터 삭제)
+     */
     @Transactional
     public Post delete(Integer postId, String userId) {
         Post post = postRepository.findById(postId)
@@ -120,11 +131,20 @@ public class NoticeService {
                 .orElseThrow(() -> new RuntimeException("NOT_FOUND"));
 
         if (hasAdminPrivilege(userId) || post.getUserId().equals(userId)) {
-            // [테스트 핵심] 자식 데이터부터 순서대로 지워야 함!
-            postLikeRepository.deleteAllByPost(post);    // 1. 좋아요 먼저
-            postAttachedRepository.deleteAllByPost(post); // 2. 이미지 먼저
 
-            postRepository.delete(post);                  // 3. 마지막에 게시글
+            // 1. 좋아요 데이터 삭제
+            postLikeRepository.deleteAllByPost(post);
+
+            // 2. 이미지 데이터 삭제
+            postAttachedRepository.deleteAllByPost(post);
+
+            // 3. 댓글 및 대댓글 삭제
+            // Comment 엔티티의 cascade = ALL 설정으로 인해 대댓글 -> 댓글 순으로 삭제됨
+            commentRepository.deleteAllByPost(post);
+
+            // 4. 마지막으로 게시글 본체 삭제
+            postRepository.delete(post);
+
         } else {
             throw new RuntimeException("삭제 권한이 없습니다.");
         }

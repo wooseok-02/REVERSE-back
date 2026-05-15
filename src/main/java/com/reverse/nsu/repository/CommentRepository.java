@@ -10,9 +10,13 @@ import java.util.List;
 @Repository
 public interface CommentRepository extends JpaRepository<Comment, Integer> {
 
-    // [수정] postId(Integer) 필드가 사라졌으므로, post(객체) 필드를 참조하도록 수정
+    // [기존 수정] 게시글별 댓글 리스트 조회
     List<Comment> findAllByPostOrderByCreatedDateAsc(Post post);
 
-    // [수정] 위와 동일하게 post 객체를 기준으로 카운트
+    // [기존 수정] 게시글별 댓글 개수 카운트
     int countByPost(Post post);
+
+    // [추가] 게시글 삭제 시 연관된 모든 댓글(대댓글 포함)을 삭제하기 위해 필요
+    // 💡 JPA가 내부적으로 대댓글-댓글 순서를 고려해서 삭제 쿼리를 날려줍니다.
+    void deleteAllByPost(Post post);
 }
