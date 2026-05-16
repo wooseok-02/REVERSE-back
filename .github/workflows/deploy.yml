@@ -1,3 +1,5 @@
+name: Deploy to Server
+
 on:
   push:
     branches: [ main ]
@@ -6,8 +8,17 @@ jobs:
   deploy:
     runs-on: self-hosted
     steps:
-      - uses: actions/checkout@v3
-      - name: 빌드 및 재시작
+      - name: 코드 Pull
         run: |
-          gradle bootJar
-          sudo systemctl restart nsu
+          cd /home/reverse/REVERSE-back
+          git pull origin main
+
+      - name: 빌드
+        run: |
+          cd /home/reverse/REVERSE-back
+          ./gradlew bootJar
+
+      - name: 서버 재시작
+        run: |
+          sudo systemctl restart nsu.service
+          sudo systemctl status nsu.service
