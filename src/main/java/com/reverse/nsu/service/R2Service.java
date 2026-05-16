@@ -33,17 +33,30 @@ public class R2Service {
      * @return          DB에 저장할 퍼블릭 URL
      */
     public String upload(MultipartFile file, String folder) throws IOException {
-        String fileName = folder + "/" + UUID.randomUUID() + "_" + file.getOriginalFilename();
+        return upload(file, folder, false);
+    }
 
-        PutObjectRequest request = PutObjectRequest.builder()
+    public String upload(MultipartFile file, String folder, boolean forceDownload) throws IOException {
+        String originalFilename = file.getOriginalFilename();
+        String safeFilename = (originalFilename != null) ? originalFilename.replaceAll("\\s+", "_") : "file";
+
+        // forceDownload일 때는 folder/uuid/파일명 구조로 저장
+        // → 브라우저가 마지막 경로를 파일명으로 인식해 UUID 없이 다운로드됨
+        String fileName = forceDownload
+                ? folder + "/" + UUID.randomUUID() + "/" + safeFilename
+                : folder + "/" + UUID.randomUUID() + "_" + safeFilename;
+
+        PutObjectRequest.Builder builder = PutObjectRequest.builder()
                 .bucket(bucketName)
                 .key(fileName)
-                .contentType(file.getContentType())
-                .build();
+                .contentType(file.getContentType());
 
-        s3Client.putObject(request, RequestBody.fromBytes(file.getBytes()));
+        if (forceDownload) {
+            builder.contentDisposition("attachment");
+        }
 
-        // DB에 저장할 URL 반환
+        s3Client.putObject(builder.build(), RequestBody.fromBytes(file.getBytes()));
+
         return publicUrl + "/" + fileName;
     }
 
