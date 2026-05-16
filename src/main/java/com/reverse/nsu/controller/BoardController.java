@@ -4,11 +4,15 @@ import com.reverse.nsu.dto.ApiResponse;
 import com.reverse.nsu.dto.BoardPostListResponseDto;
 import com.reverse.nsu.dto.BoardPostResponseDto;
 import com.reverse.nsu.service.BoardService;
+import com.reverse.nsu.service.R2Service;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
+
+import java.io.IOException;
 
 @RestController
 @RequestMapping("/api/posts/board")
@@ -16,6 +20,14 @@ import org.springframework.web.bind.annotation.*;
 public class BoardController {
 
     private final BoardService boardService;
+    private final R2Service r2Service;
+
+    // 파일 업로드 (다운로드용)
+    @PostMapping("/file")
+    public ResponseEntity<String> uploadFile(
+            @RequestParam("file") MultipartFile file) throws IOException {
+        return ResponseEntity.ok(r2Service.upload(file, "board", true));
+    }
 
     // 목록 조회
     @GetMapping
