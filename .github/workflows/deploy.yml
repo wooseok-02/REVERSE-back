@@ -14,7 +14,6 @@ jobs:
 
       - name: 빌드
         run: |
-          cd /home/reverse/REVERSE-back
           ./gradlew bootJar
 
       - name: 서버 재시작
