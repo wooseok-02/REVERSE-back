@@ -1389,12 +1389,14 @@ Base Path: `/api/posts/board`
   "data": {
     "content": [
       {
-        "id": 42,
+        "postId": 42,
         "title": "첫 번째 게시글",
+        "category": "동아리 활동",
         "userId": "admin01",
         "createdAt": "2026-05-12",
         "commentCount": 0,
-        "likeCount": 0
+        "likeCount": 0,
+        "imageUrls": []
       }
     ],
     "totalPages": 1,
@@ -1420,7 +1422,7 @@ Base Path: `/api/posts/board`
 {
   "success": true,
   "data": {
-    "id": 42,
+    "postId": 42,
     "title": "첫 번째 게시글",
     "content": "게시글 내용입니다.",
     "userId": "admin01",
@@ -1428,7 +1430,7 @@ Base Path: `/api/posts/board`
     "modifiedAt": null,
     "commentCount": 0,
     "likeCount": 0,
-    "imageUrls": []
+    "imageUrls": ["https://pub-xxx.r2.dev/board/uuid/파일명.png"]
   }
 }
 ```
@@ -1610,6 +1612,26 @@ Base Path: `/api/posts/board`
 | 상황 | HTTP 상태 |
 |---|---|
 | 존재하지 않는 게시글 | `404` — NOT_FOUND |
+
+---
+
+### POST /api/posts/board/file
+파일을 R2에 업로드하고 URL을 반환한다. 이미지·txt·pdf 등 모든 파일 가능. URL 접속 시 자동 다운로드.
+
+> 로그인 필수 — `Authorization: Bearer {token}`
+
+**Request — form-data**
+
+| Key | Type | 필수 | 설명 |
+|---|---|---|---|
+| `file` | File | Y | 업로드할 파일 |
+
+**응답 `200 OK`**
+```
+"https://pub-xxx.r2.dev/board/uuid/파일명.txt"
+```
+
+반환된 URL을 게시글 작성 시 `imageUrls` 배열에 포함해서 전송한다.
 
 ---
 
