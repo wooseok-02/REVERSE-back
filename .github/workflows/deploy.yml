@@ -10,7 +10,6 @@ jobs:
     steps:
       - name: 코드 Pull
         run: |
-          cd /home/reverse/REVERSE-back
           git pull origin main
 
       - name: 빌드
