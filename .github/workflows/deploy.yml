@@ -14,6 +14,7 @@ jobs:
 
       - name: 빌드
         run: |
+          chmod +x gradlew
           ./gradlew bootJar
 
       - name: 서버 재시작
