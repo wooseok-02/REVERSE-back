@@ -5,6 +5,8 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+import java.util.Map;
+
 @RestController
 public class TestController {
 
@@ -26,5 +28,13 @@ public class TestController {
         return ResponseEntity.ok()
                 .contentType(MediaType.TEXT_HTML)
                 .body(html);
+    }
+
+    @GetMapping("/api/deploy-check")
+    public ResponseEntity<Map<String, String>> deployCheck() {
+        return ResponseEntity.ok(Map.of(
+                "status", "ok",
+                "version", "deploy-check-2026-05-19-01"
+        ));
     }
 }
