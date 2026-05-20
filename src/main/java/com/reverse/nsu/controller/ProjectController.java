@@ -47,13 +47,15 @@ public class ProjectController {
 
     /**
      * 프로젝트 게시글 작성
-     * - [구조 통일] 다른 팀원의 코드와 결을 맞추기 위해 똑같이 @RequestAttribute 구조로 개편했습니다.
+     * - [구조 통일] @RequestAttribute를 사용하여 토큰에서 파싱된 userId를 바인딩합니다.
+     * - [응답 추가] 프론트엔드 라우팅 편의성을 위해 성공 시 생성된 projectId를 함께 반환합니다.
      */
     @PostMapping
     public ResponseEntity<Map<String, Object>> createProject(
             @RequestBody ProjectRequestDto dto,
             @RequestAttribute(value = "userId", required = false) String currentUserId) {
 
+        // 1. 토큰 입구 컷 검사 (인증 실패)
         if (currentUserId == null) {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(Map.of(
                     "success", false,
@@ -61,13 +63,23 @@ public class ProjectController {
             ));
         }
 
-        Integer projectId = projectService.createProject(dto, currentUserId);
+        try {
+            // 2. 서비스 레이어 호출 및 생성된 고유 ID 수신
+            Integer savedProjectId = projectService.createProject(dto, currentUserId);
 
-        return ResponseEntity.ok(Map.of(
-                "success", true,
-                "projectId", projectId,
-                "message", "프로젝트 모집 글이 성공적으로 등록되었습니다."
-        ));
+            // 🔥 [수정 포인트] 프론트엔드가 사용할 수 있도록 생성된 projectId를 함께 반환합니다.
+            return ResponseEntity.ok(Map.of(
+                    "success", true,
+                    "projectId", savedProjectId,
+                    "message", "프로젝트 모집 글이 성공적으로 등록되었습니다."
+            ));
+
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(Map.of(
+                    "success", false,
+                    "message", e.getMessage()
+            ));
+        }
     }
 
     /**
@@ -80,7 +92,7 @@ public class ProjectController {
             @RequestBody ProjectApplyRequestDto dto,
             @RequestAttribute(value = "userId", required = false) String currentUserId) {
 
-        // 1. 토큰이 없거나 유효하지 않아 userId 파싱이 실패한 경우 (인증 실패) -> 맨 위 유지
+        // 1. 토큰이 없거나 유효하지 않아 userId 파싱이 실패한 경우 (인증 실패)
         if (currentUserId == null) {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(Map.of(
                     "success", false,
@@ -88,21 +100,22 @@ public class ProjectController {
             ));
         }
 
+        // 2. 필수 입력값 누락 검증 (기획서 예외처리 우선순위 반영)
         if (dto.getEmail() == null || dto.getEmail().isBlank() ||
                 dto.getAvailableDate() == null ||
                 dto.getAvailableTime() == null || dto.getAvailableTime().isBlank()) {
 
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(Map.of(
                     "success", false,
-                    "message", "요일과 시간, 이메일은 필수 입력해야 합니다." // 기획서 문구 매칭
+                    "message", "요일과 시간, 이메일은 필수 입력해야 합니다."
             ));
         }
 
-        // 3. 디버깅용 로그 확인
+        // 디버깅용 로그 확인
         System.out.println("====== [인증 완료] 현재 지원을 시도하는 유저 ID: [" + currentUserId + "] ======");
 
         try {
-            // 4. 실제 DB 검증(여기서 중복 검사가 돌기 때문에 위에서 필수값으로 먼저 컷트해야 합니다)
+            // 3. 실제 DB 검증 및 로직 수행 (중복 지원 검증 포함)
             projectService.applyProject(projectId, currentUserId, dto);
 
             return ResponseEntity.ok(Map.of(
