@@ -23,21 +23,21 @@ public class ProjectService {
     private final ProjectRepository projectRepository;
     private final ProjectScheduleRepository projectScheduleRepository;
     private final ProjectMemberRepository projectMemberRepository;
-    // ❌ projectApplicationRepository 의존성 완전 제거
 
     /**
      * 1. 프로젝트 게시글 작성 및 일정/멤버 자동 등록
+     * - [수정 완료] dto 내부의 빈 leaderId 대신 토큰에서 나온 currentUserId를 바인딩 및 검증합니다.
      */
     @Transactional
     public Integer createProject(ProjectRequestDto dto, String currentUserId) {
-        // 기본 벨리데이션
-        validateProjectDto(dto);
+        // 🔥 [수정] 토큰 유저 ID를 같이 넘겨서 벨리데이션 검사 수행
+        validateProjectDto(dto, currentUserId);
 
         // 프로젝트 마스터 엔티티 생성 및 저장
         Project project = Project.builder()
-                .leaderId(dto.getLeaderId())
+                .leaderId(currentUserId) // 🔥 [수정] dto 대신 토큰에서 파싱된 유저 ID 장전
                 .projectName(dto.getProjectName())
-                .leaderName(dto.getLeaderName())
+                .leaderName(dto.getLeaderName() != null ? dto.getLeaderName() : "프로젝트 팀장") // 빈 값 방어
                 .photoUrl(dto.getPhotoUrl())
                 .description(dto.getDescription())
                 .goal(dto.getGoal())
@@ -64,7 +64,7 @@ public class ProjectService {
         // 개설한 팀장을 프로젝트 초기 멤버(LEADER 권한)로 등록
         ProjectMember leader = ProjectMember.builder()
                 .project(savedProject)
-                .userId(dto.getLeaderId())
+                .userId(currentUserId) // 🔥 [수정] 토큰 유저 ID로 팀장 권한 맵핑
                 .memberRole(MemberRole.LEADER)
                 .build();
         projectMemberRepository.save(leader);
@@ -76,7 +76,7 @@ public class ProjectService {
     }
 
     /**
-     * 2. [수정] 프로젝트 모집 지원서 제출 ➡️ PROJECT_MEMBER 테이블 적재로 변경
+     * 2. 프로젝트 모집 지원서 제출 ➡️ PROJECT_MEMBER 테이블 적재
      */
     @Transactional
     public void applyProject(Integer projectId, String userId, ProjectApplyRequestDto dto) {
@@ -90,24 +90,19 @@ public class ProjectService {
             throw new IllegalStateException("이미 모집이 완료된 프로젝트입니다.");
         }
 
-        // ❌ 실제 DB 명세서에 저장하지 않는 가짜 필드(email, 일자, 개인정보동의 등)의 예외 검증 로직 완전 걷어냄
-
         // 예외 처리 규칙 2: 해당 프로젝트에 중복 참여 및 중복 지원 방어 (UK_PROJECT_USER 제약 조건 보호)
         if (projectMemberRepository.existsByProjectAndUserId(project, userId)) {
             throw new IllegalStateException("이미 이 프로젝트의 멤버이거나 지원서를 제출하셨습니다.");
         }
 
-        // [변경] 가짜 엔티티 대신 실제 MariaDB 스펙인 PROJECT_MEMBER 엔티티에 MEMBER 권한으로 적재
+        // 실제 MariaDB 스펙인 PROJECT_MEMBER 엔티티에 MEMBER 권한으로 적재
         ProjectMember applicant = ProjectMember.builder()
                 .project(project)
                 .userId(userId)
-                .memberRole(MemberRole.MEMBER) // 일반 지원자는 MEMBER 역할로 등록
+                .memberRole(MemberRole.MEMBER)
                 .build();
 
         projectMemberRepository.save(applicant);
-
-        // 💡 만약 팀장의 승인 절차 없이 '지원 즉시 인원수 증가' 규칙이라면 아래 주석을 해제하세요.
-        // project.updateMemberCount(project.getMemberCount() + 1);
     }
 
     /**
@@ -117,7 +112,6 @@ public class ProjectService {
     public Page<ProjectResponseDto> getProjectList(String keyword, ProjectStatus status, Pageable pageable) {
         Page<Project> projectPage;
 
-        // 화면 정의서 검색 로직 분기 구현
         if (keyword != null && !keyword.trim().isEmpty()) {
             if (status != null) {
                 projectPage = projectRepository.searchByStatusAndKeyword(status, keyword.trim(), pageable);
@@ -130,7 +124,6 @@ public class ProjectService {
             projectPage = projectRepository.findAllByOrderByCreatedDateDesc(pageable);
         }
 
-        // 요구사항 결과 반환용 DTO 래핑 후 반환
         return projectPage.map(ProjectResponseDto::new);
     }
 
@@ -144,9 +137,13 @@ public class ProjectService {
         return new ProjectResponseDto(project);
     }
 
-    private void validateProjectDto(ProjectRequestDto dto) {
+    /**
+     * 🔥 [수정] 필수값 검증 부위 개편
+     * - 기존 dto.getLeaderId() 검증 대신, 아규먼트로 넘어온 토큰 기반 유저 고유 ID(currentUserId)를 검사합니다.
+     */
+    private void validateProjectDto(ProjectRequestDto dto, String currentUserId) {
         if (dto.getProjectName() == null || dto.getProjectName().trim().isEmpty() ||
-                dto.getLeaderId() == null || dto.getLeaderName() == null) {
+                currentUserId == null || currentUserId.trim().isEmpty()) {
             throw new IllegalArgumentException("필수 항목(프로젝트명, 팀장 정보)이 누락되었습니다.");
         }
     }
