@@ -25,19 +25,16 @@ public class ProjectService {
     private final ProjectMemberRepository projectMemberRepository;
 
     /**
-     * 1. 프로젝트 게시글 작성 및 일정/멤버 자동 등록
-     * - [수정 완료] dto 내부의 빈 leaderId 대신 토큰에서 나온 currentUserId를 바인딩 및 검증합니다.
+     * 1. [C] 프로젝트 게시글 작성
      */
     @Transactional
     public Integer createProject(ProjectRequestDto dto, String currentUserId) {
-        // 🔥 [수정] 토큰 유저 ID를 같이 넘겨서 벨리데이션 검사 수행
         validateProjectDto(dto, currentUserId);
 
-        // 프로젝트 마스터 엔티티 생성 및 저장
         Project project = Project.builder()
-                .leaderId(currentUserId) // 🔥 [수정] dto 대신 토큰에서 파싱된 유저 ID 장전
+                .leaderId(currentUserId)
                 .projectName(dto.getProjectName())
-                .leaderName(dto.getLeaderName() != null ? dto.getLeaderName() : "프로젝트 팀장") // 빈 값 방어
+                .leaderName(dto.getLeaderName() != null ? dto.getLeaderName() : "프로젝트 팀장")
                 .photoUrl(dto.getPhotoUrl())
                 .description(dto.getDescription())
                 .goal(dto.getGoal())
@@ -49,7 +46,6 @@ public class ProjectService {
 
         Project savedProject = projectRepository.save(project);
 
-        // 요일 및 시간 일정(Schedule)이 있을 경우 함께 연동 저장
         if (dto.getSchedules() != null && !dto.getSchedules().isEmpty()) {
             List<ProjectSchedule> schedules = dto.getSchedules().stream()
                     .map(sDto -> ProjectSchedule.builder()
@@ -61,41 +57,90 @@ public class ProjectService {
             projectScheduleRepository.saveAll(schedules);
         }
 
-        // 개설한 팀장을 프로젝트 초기 멤버(LEADER 권한)로 등록
         ProjectMember leader = ProjectMember.builder()
                 .project(savedProject)
-                .userId(currentUserId) // 🔥 [수정] 토큰 유저 ID로 팀장 권한 맵핑
+                .userId(currentUserId)
                 .memberRole(MemberRole.LEADER)
                 .build();
         projectMemberRepository.save(leader);
 
-        // 팀장 포함하여 초기 멤버 카운트 1 세팅
         savedProject.updateMemberCount(1);
 
         return savedProject.getProjectId();
     }
 
     /**
-     * 2. 프로젝트 모집 지원서 제출 ➡️ PROJECT_MEMBER 테이블 적재
+     * 2. [U] 프로젝트 게시글 수정
+     * - 컨트롤러가 넘겨준 roleId를 사용하여 마스터 권한(1, 2)인지 체크합니다.
      */
     @Transactional
-    public void applyProject(Integer projectId, String userId, ProjectApplyRequestDto dto) {
-        log.info("============== 현재 지원을 시도하는 userId: [{}] ==============", userId);
-
+    public void updateProject(Integer projectId, ProjectRequestDto dto, String currentUserId, Integer roleId) {
         Project project = projectRepository.findById(projectId)
                 .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 프로젝트입니다."));
 
-        // 예외 처리 규칙 1: 이미 모집 완료(CLOSED)된 프로젝트인 경우 지원 제한
+        // 🔒 작성자 본인이거나, 슈퍼관리자(1)이거나, 일반관리자(2)인 경우 패스
+        boolean isOwner = project.getCreatedBy().equals(currentUserId);
+        boolean isAdmin = (roleId != null && (roleId == 1 || roleId == 2));
+
+        if (!isOwner && !isAdmin) {
+            throw new IllegalStateException("해당 프로젝트를 수정할 권한이 없습니다.");
+        }
+
+        if (dto.getProjectName() == null || dto.getProjectName().trim().isEmpty()) {
+            throw new IllegalArgumentException("프로젝트 이름은 필수 입력 사항입니다.");
+        }
+
+        project.updateProjectDetails(dto);
+
+        if (dto.getSchedules() != null) {
+            projectScheduleRepository.deleteAllByProject(project);
+            List<ProjectSchedule> newSchedules = dto.getSchedules().stream()
+                    .map(sDto -> ProjectSchedule.builder()
+                            .project(project)
+                            .dayOfWeek(sDto.getDayOfWeek())
+                            .meetTime(LocalTime.parse(sDto.getMeetTime(), DateTimeFormatter.ofPattern("HH:mm")))
+                            .build())
+                    .collect(Collectors.toList());
+            projectScheduleRepository.saveAll(newSchedules);
+        }
+    }
+
+    /**
+     * 3. [D] 프로젝트 게시글 삭제
+     * - 컨트롤러가 넘겨준 roleId를 사용하여 마스터 권한(1, 2)인지 체크합니다.
+     */
+    @Transactional
+    public void deleteProject(Integer projectId, String currentUserId, Integer roleId) {
+        Project project = projectRepository.findById(projectId)
+                .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 프로젝트입니다."));
+
+        // 🔒 작성자 본인이거나, 관리자 권한(1, 2) 세트 중 하나라도 만족하면 통과
+        boolean isOwner = project.getCreatedBy().equals(currentUserId);
+        boolean isAdmin = (roleId != null && (roleId == 1 || roleId == 2));
+
+        if (!isOwner && !isAdmin) {
+            throw new IllegalStateException("해당 프로젝트를 삭제할 권한이 없습니다.");
+        }
+
+        projectRepository.delete(project);
+    }
+
+    /**
+     * 4. 프로젝트 모집 지원서 제출
+     */
+    @Transactional
+    public void applyProject(Integer projectId, String userId, ProjectApplyRequestDto dto) {
+        Project project = projectRepository.findById(projectId)
+                .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 프로젝트입니다."));
+
         if (project.getStatus() == ProjectStatus.CLOSED) {
             throw new IllegalStateException("이미 모집이 완료된 프로젝트입니다.");
         }
 
-        // 예외 처리 규칙 2: 해당 프로젝트에 중복 참여 및 중복 지원 방어 (UK_PROJECT_USER 제약 조건 보호)
         if (projectMemberRepository.existsByProjectAndUserId(project, userId)) {
             throw new IllegalStateException("이미 이 프로젝트의 멤버이거나 지원서를 제출하셨습니다.");
         }
 
-        // 실제 MariaDB 스펙인 PROJECT_MEMBER 엔티티에 MEMBER 권한으로 적재
         ProjectMember applicant = ProjectMember.builder()
                 .project(project)
                 .userId(userId)
@@ -106,7 +151,7 @@ public class ProjectService {
     }
 
     /**
-     * 3. 프로젝트 목록 및 키워드 검색 조회 (비로그인 접근 가능)
+     * 5. [R] 프로젝트 목록 조회
      */
     @Transactional(readOnly = true)
     public Page<ProjectResponseDto> getProjectList(String keyword, ProjectStatus status, Pageable pageable) {
@@ -128,7 +173,7 @@ public class ProjectService {
     }
 
     /**
-     * 4. 단건 상세 정보 조회 (팝업 노출용)
+     * 6. 프로젝트 단건 상세 조회
      */
     @Transactional(readOnly = true)
     public ProjectResponseDto getProjectDetail(Integer projectId) {
@@ -137,10 +182,6 @@ public class ProjectService {
         return new ProjectResponseDto(project);
     }
 
-    /**
-     * 🔥 [수정] 필수값 검증 부위 개편
-     * - 기존 dto.getLeaderId() 검증 대신, 아규먼트로 넘어온 토큰 기반 유저 고유 ID(currentUserId)를 검사합니다.
-     */
     private void validateProjectDto(ProjectRequestDto dto, String currentUserId) {
         if (dto.getProjectName() == null || dto.getProjectName().trim().isEmpty() ||
                 currentUserId == null || currentUserId.trim().isEmpty()) {
