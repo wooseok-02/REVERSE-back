@@ -114,6 +114,9 @@ public class Project {
         if (dto.getStatus() != null) {
             this.status = dto.getStatus();
         }
+        if (dto.getPhotoUrl() != null) {
+            this.photoUrl = dto.getPhotoUrl();
+        }
     }
 
     public void updateStatus(ProjectStatus newStatus) {

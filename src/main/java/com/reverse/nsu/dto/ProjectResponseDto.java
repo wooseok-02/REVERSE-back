@@ -13,21 +13,21 @@ public class ProjectResponseDto {
     private final String projectName;
     private final String leaderId;
     private final String leaderName;
-    private final String photoUrl;
+    private final String photoUrl; // 💡 Cloudflare R2 이미지 주소가 매핑되는 곳
     private final String description;
     private final String goal;
     private final Integer memberCount;
     private final String location;
     private final String notice;
     private final ProjectStatus status;
-    private final List<ScheduleResponseDto> schedules;
+    private final List<ScheduleResponseDto> schedules; // 진행 요일 및 시간대 목록
 
     public ProjectResponseDto(Project project) {
         this.projectId = project.getProjectId();
         this.projectName = project.getProjectName();
         this.leaderId = project.getLeaderId();
         this.leaderName = project.getLeaderName();
-        this.photoUrl = project.getPhotoUrl();
+        this.photoUrl = project.getPhotoUrl(); // 💡 엔티티에 저장된 R2 URL 주소를 DTO에 바인딩
         this.description = project.getDescription();
         this.goal = project.getGoal();
         this.memberCount = project.getMemberCount();
@@ -46,7 +46,7 @@ public class ProjectResponseDto {
 
         public ScheduleResponseDto(com.reverse.nsu.entity.ProjectSchedule schedule) {
             this.dayOfWeek = schedule.getDayOfWeek();
-            this.meetTime = schedule.getMeetTime().toString(); // "18:00" 형태 포맷팅
+            this.meetTime = schedule.getMeetTime().toString(); // LocalTime을 "18:00" 형태의 문자열로 포맷팅
         }
     }
 }
