@@ -71,7 +71,6 @@ public class ProjectService {
 
     /**
      * 2. [U] 프로젝트 게시글 수정
-     * - 컨트롤러가 넘겨준 roleId를 사용하여 마스터 권한(1, 2)인지 체크합니다.
      */
     @Transactional
     public void updateProject(Integer projectId, ProjectRequestDto dto, String currentUserId, Integer roleId) {
@@ -86,6 +85,7 @@ public class ProjectService {
             throw new IllegalStateException("해당 프로젝트를 수정할 권한이 없습니다.");
         }
 
+        // 🚨 예외 처리: 수정 시 프로젝트 이름 필수 입력 검증
         if (dto.getProjectName() == null || dto.getProjectName().trim().isEmpty()) {
             throw new IllegalArgumentException("프로젝트 이름은 필수 입력 사항입니다.");
         }
@@ -93,7 +93,14 @@ public class ProjectService {
         project.updateProjectDetails(dto);
 
         if (dto.getSchedules() != null) {
+            // 1. 기존 연관 스케줄 벌크 삭제 요청
             projectScheduleRepository.deleteAllByProject(project);
+
+            // 🔥 [수정 포인트] 영속성 컨텍스트의 삭제 쿼리를 DB에 즉시 동기화(Flush)
+            // 이를 통해 UQ_PROJECT_SCHEDULE(projectId-dayOfWeek) 유니크 키 중복 충돌 예외를 완전히 예방합니다.
+            projectScheduleRepository.flush();
+
+            // 2. 새 스케줄 데이터 빌드 및 일괄 저장
             List<ProjectSchedule> newSchedules = dto.getSchedules().stream()
                     .map(sDto -> ProjectSchedule.builder()
                             .project(project)
@@ -107,14 +114,12 @@ public class ProjectService {
 
     /**
      * 3. [D] 프로젝트 게시글 삭제
-     * - 컨트롤러가 넘겨준 roleId를 사용하여 마스터 권한(1, 2)인지 체크합니다.
      */
     @Transactional
     public void deleteProject(Integer projectId, String currentUserId, Integer roleId) {
         Project project = projectRepository.findById(projectId)
                 .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 프로젝트입니다."));
 
-        // 🔒 작성자 본인이거나, 관리자 권한(1, 2) 세트 중 하나라도 만족하면 통과
         boolean isOwner = project.getCreatedBy().equals(currentUserId);
         boolean isAdmin = (roleId != null && (roleId == 1 || roleId == 2));
 
