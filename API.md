@@ -3,7 +3,7 @@
 - **Base URL**: `http://localhost:8080`
 - **응답 형식**: JSON (이미지 업로드 응답은 plain text)
 - **작성일**: 2026.04.09
-- **최종 수정일**: 2026.05.20
+- **최종 수정일**: 2026.05.23
 
 ---
 
@@ -26,6 +26,7 @@
 15. [활동 프로젝트 (Projects)](#15-활동-프로젝트-projects)
 16. [다중 게시판 (Multi-Board)](#16-다중-게시판-multi-board)
 17. [스터디 (Study)](#17-스터디-study)
+18. [IT 이슈 (IT Issue)](#18-it-이슈-it-issue)
 
 ---
 
@@ -2373,6 +2374,44 @@ Base Path: `/api/studies`
 | 토큰 없음/만료 | `401` — 로그인이 필요합니다. |
 | 팀장 아님 | `403` — 스터디 팀장만 삭제할 수 있습니다. |
 | 존재하지 않는 ID | `404` — 스터디를 찾을 수 없습니다. |
+
+---
+
+---
+
+## 18. IT 이슈 (IT Issue)
+
+### GET /api/it-issues
+AI Times 최신 IT 이슈 6개를 조회한다. 비로그인 접근 가능.
+
+- **인증**: 불필요
+- **갱신 주기**: 서버 시작 시 즉시 수집, 이후 매일 05:00 자동 갱신
+
+**응답 `200 OK`**
+```json
+{
+  "success": true,
+  "data": [
+    {
+      "title": "엔비디아, 'RTX 5090' 한장으로 1분 영상 생성하는 월드 모델 오픈 공개",
+      "imageUrl": "https://cdn.aitimes.com/news/photo/202605/210609_213000_1234.jpg",
+      "articleUrl": "https://www.aitimes.com/news/articleView.html?idxno=210609"
+    }
+  ],
+  "code": null,
+  "message": null
+}
+```
+
+**응답 (데이터 없음)**
+```json
+{
+  "success": false,
+  "data": null,
+  "code": "NO_DATA",
+  "message": "현재 이슈를 불러올 수 없습니다."
+}
+```
 
 ---
 
