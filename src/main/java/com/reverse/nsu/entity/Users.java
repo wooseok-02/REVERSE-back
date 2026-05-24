@@ -47,4 +47,12 @@ public class Users {
     @UpdateTimestamp
     @Column(name = "modifiedDate", nullable = false)
     private LocalDateTime modifiedDate;
+
+    /**
+     * 🔥 [마이페이지 비즈니스 메서드]
+     * - 자기소개(한 줄 소개) 내용을 안전하게 변경합니다.
+     */
+    public void updateIntroduce(String userIntroduce) {
+        this.userIntroduce = userIntroduce;
+    }
 }
