@@ -3,7 +3,7 @@
 - **Base URL**: `http://localhost:8080`
 - **응답 형식**: JSON (이미지 업로드 응답은 plain text)
 - **작성일**: 2026.04.09
-- **최종 수정일**: 2026.05.31
+- **최종 수정일**: 2026.05.30
 
 ---
 
@@ -2427,6 +2427,40 @@ AI Times 최신 IT 이슈 6개를 조회한다. 비로그인 접근 가능.
 **응답 `200 OK`**
 ```json
 { "success": true, "data": null, "message": "게시글이 삭제되었습니다." }
+## 19. 투표 (Vote)
+
+Base Path: `/api/votes`
+
+---
+
+### POST /api/votes
+투표를 작성한다.
+
+- **인증**: 필요
+
+**요청 Body** `application/json`
+
+| 필드 | 타입 | 필수 | 설명 |
+|---|---|---|---|
+| `title` | String | Y | 투표 제목 (최대 100자) |
+| `content` | String | N | 투표 설명 |
+| `deadline` | LocalDateTime | N | 마감 일시 (예: `2026-06-10T23:59:00`) |
+| `isMultiple` | Boolean | N | 복수 선택 여부 (기본값: `false`) |
+| `options` | String[] | Y | 투표 항목 목록 (최소 2개) |
+
+```json
+{
+  "title": "이번 주 모임 장소",
+  "content": "이번 주 동아리 모임 장소를 투표해주세요.",
+  "deadline": "2026-06-10T23:59:00",
+  "isMultiple": false,
+  "options": ["강의실 302호", "도서관 세미나실", "카페 스터디룸"]
+}
+```
+
+**응답 `200 OK`**
+```json
+{ "status": "success", "voteId": 1, "message": "투표가 등록되었습니다." }
 ```
 
 **에러 응답**
@@ -2439,6 +2473,56 @@ AI Times 최신 IT 이슈 6개를 조회한다. 비로그인 접근 가능.
 
 ### GET /api/admin/boards
 게시판 목록 전체 조회.
+| 제목 누락 / 항목 2개 미만 | `400` — 사유 메시지 반환 |
+| 토큰 없음/만료 | `401` — 로그인이 필요한 서비스입니다. |
+
+---
+
+### GET /api/votes
+투표 목록을 조회한다. 10개씩 페이징.
+
+- **인증**: 불필요
+
+**Query Parameter**
+
+| 파라미터 | 타입 | 필수 | 설명 |
+|---|---|---|---|
+| `page` | Integer | N | 페이지 번호 (기본값: `0`) |
+| `size` | Integer | N | 페이지 크기 (기본값: `10`) |
+
+**응답 `200 OK`** (Page)
+```json
+{
+  "content": [
+    {
+      "voteId": 1,
+      "userId": "user01",
+      "title": "이번 주 모임 장소",
+      "deadline": "2026-06-10T23:59:00",
+      "isClosed": false,
+      "optionCount": 3,
+      "totalVoteCount": 5,
+      "createdDate": "2026-05-30T21:58:42"
+    }
+  ],
+  "totalPages": 1,
+  "totalElements": 1,
+  "number": 0
+}
+```
+
+---
+
+### GET /api/votes/{voteId}
+투표 상세 정보를 조회한다. 로그인 시 내 투표 여부(`myVotedOptionId`)도 반환.
+
+- **인증**: 선택 (로그인 시 `myVotedOptionId` 포함)
+
+**Path Variable**
+
+| 파라미터 | 타입 | 설명 |
+|---|---|---|
+| `voteId` | Integer | 조회할 투표 ID |
 
 **응답 `200 OK`**
 ```json
@@ -2473,6 +2557,130 @@ AI Times 최신 IT 이슈 6개를 조회한다. 비로그인 접근 가능.
 **응답 `200 OK`**
 ```json
 { "success": true, "data": null, "message": "게시판이 삭제되었습니다." }
+  "voteId": 1,
+  "userId": "user01",
+  "title": "이번 주 모임 장소",
+  "content": "이번 주 동아리 모임 장소를 투표해주세요.",
+  "deadline": "2026-06-10T23:59:00",
+  "isMultiple": false,
+  "isClosed": false,
+  "createdDate": "2026-05-30T21:58:42",
+  "modifiedDate": null,
+  "myVotedOptionId": 2,
+  "options": [
+    { "optionId": 1, "optionText": "강의실 302호", "sortOrder": 0, "voteCount": 0 },
+    { "optionId": 2, "optionText": "도서관 세미나실", "sortOrder": 1, "voteCount": 3 },
+    { "optionId": 3, "optionText": "카페 스터디룸", "sortOrder": 2, "voteCount": 2 }
+  ]
+}
+```
+
+> `myVotedOptionId`: 미로그인 또는 미투표 시 `null`
+
+---
+
+### POST /api/votes/{voteId}/vote
+투표한다. 1인 1표 제한.
+
+- **인증**: 필요
+
+**Path Variable**
+
+| 파라미터 | 타입 | 설명 |
+|---|---|---|
+| `voteId` | Integer | 투표 ID |
+
+**요청 Body** `application/json`
+
+| 필드 | 타입 | 필수 | 설명 |
+|---|---|---|---|
+| `optionId` | Integer | Y | 선택한 항목 ID |
+
+```json
+{ "optionId": 2 }
+```
+
+**응답 `200 OK`**
+```json
+{ "status": "success", "message": "투표가 완료되었습니다." }
+```
+
+**에러 응답**
+| 상황 | HTTP 상태 |
+|---|---|
+| 이미 투표한 경우 | `400` — 이미 투표하셨습니다. |
+| 마감된 투표 | `400` — 마감된 투표입니다. |
+| optionId 누락 | `400` — optionId는 필수입니다. |
+| 토큰 없음/만료 | `401` — 로그인이 필요한 서비스입니다. |
+
+---
+
+### DELETE /api/votes/{voteId}/vote
+투표를 취소한다. 마감된 투표는 취소 불가.
+
+- **인증**: 필요
+
+**Path Variable**
+
+| 파라미터 | 타입 | 설명 |
+|---|---|---|
+| `voteId` | Integer | 투표 ID |
+
+**응답 `200 OK`**
+```json
+{ "status": "success", "message": "투표가 취소되었습니다." }
+```
+
+**에러 응답**
+| 상황 | HTTP 상태 |
+|---|---|
+| 투표 기록 없음 | `400` — 투표 기록이 없습니다. |
+| 마감된 투표 | `400` — 마감된 투표는 취소할 수 없습니다. |
+| 토큰 없음/만료 | `401` — 로그인이 필요한 서비스입니다. |
+
+---
+
+### PATCH /api/votes/{voteId}
+투표를 수정한다. 작성자 본인만 가능하며, 투표가 시작된 후(투표 기록 존재)에는 수정 불가.
+
+- **인증**: 필요
+
+**Path Variable**
+
+| 파라미터 | 타입 | 설명 |
+|---|---|---|
+| `voteId` | Integer | 수정할 투표 ID |
+
+**요청 Body** — POST /api/votes 와 동일
+
+**응답 `200 OK`**
+```json
+{ "status": "success", "message": "수정되었습니다." }
+```
+
+**에러 응답**
+| 상황 | HTTP 상태 |
+|---|---|
+| 본인 아님 | `403` — 수정 권한이 없습니다. |
+| 투표 시작 후 수정 시도 | `403` — 투표가 시작된 후에는 수정할 수 없습니다. |
+| 토큰 없음/만료 | `401` — 로그인이 필요한 서비스입니다. |
+
+---
+
+### DELETE /api/votes/{voteId}
+투표를 삭제한다. 작성자 본인만 가능.
+
+- **인증**: 필요
+
+**Path Variable**
+
+| 파라미터 | 타입 | 설명 |
+|---|---|---|
+| `voteId` | Integer | 삭제할 투표 ID |
+
+**응답 `200 OK`**
+```json
+{ "status": "success", "message": "삭제되었습니다." }
 ```
 
 **에러 응답**
@@ -2480,6 +2688,8 @@ AI Times 최신 IT 이슈 6개를 조회한다. 비로그인 접근 가능.
 |---|---|
 | 토큰 없음 | `401` |
 | 존재하지 않는 게시판 | `404` |
+| 본인 아님 | `403` — 삭제 권한이 없습니다. |
+| 토큰 없음/만료 | `401` — 로그인이 필요한 서비스입니다. |
 
 ---
 
