@@ -3,7 +3,7 @@
 - **Base URL**: `http://localhost:8080`
 - **응답 형식**: JSON (이미지 업로드 응답은 plain text)
 - **작성일**: 2026.04.09
-- **최종 수정일**: 2026.05.24
+- **최종 수정일**: 2026.05.31
 
 ---
 
@@ -27,7 +27,8 @@
 16. [다중 게시판 (Multi-Board)](#16-다중-게시판-multi-board)
 17. [스터디 (Study)](#17-스터디-study)
 18. [IT 이슈 (IT Issue)](#18-it-이슈-it-issue)
-19. [게시판 관리 Admin (Board Admin)](#19-게시판-관리-admin-board-admin)
+19. [투표 (Vote)](#19-투표-vote)
+20. [게시판 관리 Admin (Board Admin)](#20-게시판-관리-admin-board-admin)
 
 ---
 
@@ -2416,7 +2417,7 @@ AI Times 최신 IT 이슈 6개를 조회한다. 비로그인 접근 가능.
 
 ---
 
-## 19. 게시판 관리 Admin (Board Admin)
+## 20. 게시판 관리 Admin (Board Admin)
 
 > 모든 엔드포인트 JWT 인증 필요 (`Authorization: Bearer {token}`)
 
