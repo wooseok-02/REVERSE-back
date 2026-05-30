@@ -31,7 +31,7 @@ public class WebConfig implements WebMvcConfigurer {
     public void addInterceptors(InterceptorRegistry registry) {
         registry.addInterceptor(jwtInterceptor)
                 // 1. 기본적으로 인증이 필요한 경로들
-                .addPathPatterns("/api/posts/**", "/api/user/**")
+                .addPathPatterns("/api/posts/**", "/api/user/**", "/api/admin/**")
 
                 // 2. 인증 없이 누구나 접근 가능한(Public) 경로들 제외
                 .excludePathPatterns(
