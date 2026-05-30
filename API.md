@@ -2417,16 +2417,6 @@ AI Times 최신 IT 이슈 6개를 조회한다. 비로그인 접근 가능.
 
 ---
 
-## 20. 게시판 관리 Admin (Board Admin)
-
-> 모든 엔드포인트 JWT 인증 필요 (`Authorization: Bearer {token}`)
-
-### DELETE /api/admin/posts/{postId}
-관리자가 게시글을 강제 삭제한다. 작성자 무관하게 삭제 가능.
-
-**응답 `200 OK`**
-```json
-{ "success": true, "data": null, "message": "게시글이 삭제되었습니다." }
 ## 19. 투표 (Vote)
 
 Base Path: `/api/votes`
@@ -2468,13 +2458,6 @@ Base Path: `/api/votes`
 |---|---|
 | 토큰 없음 | `401` |
 | 존재하지 않는 게시글 | `404` |
-
----
-
-### GET /api/admin/boards
-게시판 목록 전체 조회.
-| 제목 누락 / 항목 2개 미만 | `400` — 사유 메시지 반환 |
-| 토큰 없음/만료 | `401` — 로그인이 필요한 서비스입니다. |
 
 ---
 
@@ -2527,36 +2510,6 @@ Base Path: `/api/votes`
 **응답 `200 OK`**
 ```json
 {
-  "success": true,
-  "data": [
-    { "boardId": 1, "boardName": "공지사항", "boardDescription": "공지사항 게시판" }
-  ]
-}
-```
-
----
-
-### POST /api/admin/boards
-새 게시판 추가.
-
-**Request Body**
-```json
-{ "boardName": "자유게시판", "boardDescription": "자유롭게 작성하는 게시판" }
-```
-
-**응답 `201 Created`**
-```json
-{ "success": true, "data": { "boardId": 5, "boardName": "자유게시판", ... }, "message": "게시판이 추가되었습니다." }
-```
-
----
-
-### DELETE /api/admin/boards/{boardId}
-게시판 삭제.
-
-**응답 `200 OK`**
-```json
-{ "success": true, "data": null, "message": "게시판이 삭제되었습니다." }
   "voteId": 1,
   "userId": "user01",
   "title": "이번 주 모임 장소",
@@ -2690,6 +2643,74 @@ Base Path: `/api/votes`
 | 존재하지 않는 게시판 | `404` |
 | 본인 아님 | `403` — 삭제 권한이 없습니다. |
 | 토큰 없음/만료 | `401` — 로그인이 필요한 서비스입니다. |
+
+---
+
+## 20. 게시판 관리 Admin (Board Admin)
+
+> 모든 엔드포인트 JWT 인증 필요 (`Authorization: Bearer {token}`)
+
+### DELETE /api/admin/posts/{postId}
+관리자가 게시글을 강제 삭제한다. 작성자 무관하게 삭제 가능.
+
+**응답 `200 OK`**
+```json
+{ "success": true, "data": null, "message": "게시글이 삭제되었습니다." }
+```
+
+**에러 응답**
+| 상황 | HTTP 상태 |
+|---|---|
+| 토큰 없음 | `401` |
+| 관리자 아님 | `403` |
+| 존재하지 않는 게시글 | `404` |
+
+---
+
+### GET /api/admin/boards
+게시판 목록 전체 조회.
+
+**응답 `200 OK`**
+```json
+{
+  "success": true,
+  "data": [
+    { "boardId": 1, "boardName": "공지사항", "boardDescription": "공지사항 게시판" }
+  ]
+}
+```
+
+---
+
+### POST /api/admin/boards
+새 게시판 추가.
+
+**Request Body**
+```json
+{ "boardName": "자유게시판", "boardDescription": "자유롭게 작성하는 게시판" }
+```
+
+**응답 `201 Created`**
+```json
+{ "success": true, "data": { "boardId": 5, "boardName": "자유게시판", ... }, "message": "게시판이 추가되었습니다." }
+```
+
+---
+
+### DELETE /api/admin/boards/{boardId}
+게시판 삭제.
+
+**응답 `200 OK`**
+```json
+{ "success": true, "data": null, "message": "게시판이 삭제되었습니다." }
+```
+
+**에러 응답**
+| 상황 | HTTP 상태 |
+|---|---|
+| 토큰 없음 | `401` |
+| 관리자 아님 | `403` |
+| 존재하지 않는 게시판 | `404` |
 
 ---
 
