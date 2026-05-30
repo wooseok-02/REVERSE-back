@@ -3,7 +3,7 @@
 - **Base URL**: `http://localhost:8080`
 - **응답 형식**: JSON (이미지 업로드 응답은 plain text)
 - **작성일**: 2026.04.09
-- **최종 수정일**: 2026.05.23
+- **최종 수정일**: 2026.05.24
 
 ---
 
@@ -27,6 +27,7 @@
 16. [다중 게시판 (Multi-Board)](#16-다중-게시판-multi-board)
 17. [스터디 (Study)](#17-스터디-study)
 18. [IT 이슈 (IT Issue)](#18-it-이슈-it-issue)
+19. [게시판 관리 Admin (Board Admin)](#19-게시판-관리-admin-board-admin)
 
 ---
 
@@ -2412,6 +2413,72 @@ AI Times 최신 IT 이슈 6개를 조회한다. 비로그인 접근 가능.
   "message": "현재 이슈를 불러올 수 없습니다."
 }
 ```
+
+---
+
+## 19. 게시판 관리 Admin (Board Admin)
+
+> 모든 엔드포인트 JWT 인증 필요 (`Authorization: Bearer {token}`)
+
+### DELETE /api/admin/posts/{postId}
+관리자가 게시글을 강제 삭제한다. 작성자 무관하게 삭제 가능.
+
+**응답 `200 OK`**
+```json
+{ "success": true, "data": null, "message": "게시글이 삭제되었습니다." }
+```
+
+**에러 응답**
+| 상황 | HTTP 상태 |
+|---|---|
+| 토큰 없음 | `401` |
+| 존재하지 않는 게시글 | `404` |
+
+---
+
+### GET /api/admin/boards
+게시판 목록 전체 조회.
+
+**응답 `200 OK`**
+```json
+{
+  "success": true,
+  "data": [
+    { "boardId": 1, "boardName": "공지사항", "boardDescription": "공지사항 게시판" }
+  ]
+}
+```
+
+---
+
+### POST /api/admin/boards
+새 게시판 추가.
+
+**Request Body**
+```json
+{ "boardName": "자유게시판", "boardDescription": "자유롭게 작성하는 게시판" }
+```
+
+**응답 `201 Created`**
+```json
+{ "success": true, "data": { "boardId": 5, "boardName": "자유게시판", ... }, "message": "게시판이 추가되었습니다." }
+```
+
+---
+
+### DELETE /api/admin/boards/{boardId}
+게시판 삭제.
+
+**응답 `200 OK`**
+```json
+{ "success": true, "data": null, "message": "게시판이 삭제되었습니다." }
+```
+
+**에러 응답**
+| 상황 | HTTP 상태 |
+|---|---|
+| 토큰 없음 | `401` |
+| 존재하지 않는 게시판 | `404` |
 
 ---
 
