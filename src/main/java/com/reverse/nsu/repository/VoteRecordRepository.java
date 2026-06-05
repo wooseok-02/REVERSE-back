@@ -11,6 +11,8 @@ import java.util.Optional;
 public interface VoteRecordRepository extends JpaRepository<VoteRecord, Integer> {
     Optional<VoteRecord> findByVoteAndUserId(Vote vote, String userId);
     boolean existsByVoteAndUserId(Vote vote, String userId);
+    boolean existsByVoteAndUserIdAndOption(Vote vote, String userId, VoteOption option);
+    Optional<VoteRecord> findByVoteAndUserIdAndOption(Vote vote, String userId, VoteOption option);
     List<VoteRecord> findAllByVote(Vote vote);
     void deleteAllByVote(Vote vote);
     void deleteAllByOption(VoteOption option);
