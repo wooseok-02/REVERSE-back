@@ -10,7 +10,7 @@ import java.time.LocalDateTime;
 @Entity
 @Table(
     name = "VOTE_RECORD",
-    uniqueConstraints = @UniqueConstraint(columnNames = {"voteId", "userId"})
+    uniqueConstraints = @UniqueConstraint(columnNames = {"voteId", "userId", "optionId"})
 )
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
