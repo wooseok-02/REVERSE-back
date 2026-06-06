@@ -2,8 +2,8 @@ package com.reverse.nsu.controller;
 
 import com.reverse.nsu.dto.BoardPostListResponseDto;
 import com.reverse.nsu.dto.NoticeAdminRequestDto;
-import com.reverse.nsu.entity.Post;
 import com.reverse.nsu.service.PostService;
+import com.reverse.nsu.service.RoleCheckService;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -22,14 +22,14 @@ import java.util.Map;
 public class PostController {
 
     private final PostService postService;
+    private final RoleCheckService roleCheckService;
 
-    // 중복되는 userId 추출 로직
     private String resolveUserId(HttpServletRequest request) {
         return (String) request.getAttribute("userId");
     }
 
     /**
-     * 1. 게시글 작성
+     * 1. 게시글 작성 (준회원 이상)
      */
     @PostMapping("/{boardId}")
     public ResponseEntity<?> createPost(
@@ -39,13 +39,14 @@ public class PostController {
 
         String userId = resolveUserId(request);
         if (userId == null) return unauthorizedResponse();
+        if (!roleCheckService.isAssociateOrAbove(userId)) return forbiddenResponse();
 
         Integer postId = postService.createPost(dto, userId, boardId);
         return ResponseEntity.ok(Map.of("status", "success", "postId", postId, "message", "등록되었습니다."));
     }
 
     /**
-     * 2. 게시글 수정
+     * 2. 게시글 수정 (준회원 이상, 본인 또는 관리자)
      */
     @PatchMapping("/post/{postId}")
     public ResponseEntity<?> updatePost(
@@ -55,6 +56,7 @@ public class PostController {
 
         String userId = resolveUserId(request);
         if (userId == null) return unauthorizedResponse();
+        if (!roleCheckService.isAssociateOrAbove(userId)) return forbiddenResponse();
 
         try {
             postService.updatePost(postId, dto, userId);
@@ -65,7 +67,7 @@ public class PostController {
     }
 
     /**
-     * 3. 게시글 삭제
+     * 3. 게시글 삭제 (준회원 이상, 본인 또는 관리자)
      */
     @DeleteMapping("/post/{postId}")
     public ResponseEntity<?> deletePost(
@@ -74,6 +76,7 @@ public class PostController {
 
         String userId = resolveUserId(request);
         if (userId == null) return unauthorizedResponse();
+        if (!roleCheckService.isAssociateOrAbove(userId)) return forbiddenResponse();
 
         try {
             postService.deletePost(postId, userId);
@@ -84,7 +87,7 @@ public class PostController {
     }
 
     /**
-     * 4. 전체 게시판 목록 및 검색
+     * 4. 게시글 목록 조회 (준회원 이상)
      */
     @GetMapping("/{boardId}")
     public ResponseEntity<?> getPosts(
@@ -96,8 +99,9 @@ public class PostController {
             HttpServletRequest request) {
 
         String userId = resolveUserId(request);
+        if (userId == null) return unauthorizedResponse();
+        if (!roleCheckService.isAssociateOrAbove(userId)) return forbiddenResponse();
 
-        // 서비스 호출 및 DTO 변환을 한 줄로 정리
         Page<BoardPostListResponseDto> response = postService
                 .searchPosts(boardId, category, type, keyword, pageable, userId)
                 .map(BoardPostListResponseDto::new);
@@ -106,18 +110,18 @@ public class PostController {
     }
 
     /**
-     * 5. 내 통계 정보 조회
+     * 5. 내 통계 정보 조회 (준회원 이상)
      */
     @GetMapping("/my/stats")
     public ResponseEntity<?> getMyStats(HttpServletRequest request) {
         String userId = resolveUserId(request);
         if (userId == null) return unauthorizedResponse();
-
+        if (!roleCheckService.isAssociateOrAbove(userId)) return forbiddenResponse();
         return ResponseEntity.ok(postService.getMyPostStats(userId));
     }
 
     /**
-     * 6. 나의 게시글 목록 확인
+     * 6. 나의 게시글 목록 (준회원 이상)
      */
     @GetMapping("/my/posts")
     public ResponseEntity<?> getMyPosts(
@@ -126,6 +130,7 @@ public class PostController {
 
         String userId = resolveUserId(request);
         if (userId == null) return unauthorizedResponse();
+        if (!roleCheckService.isAssociateOrAbove(userId)) return forbiddenResponse();
 
         Page<BoardPostListResponseDto> response = postService
                 .getMyPosts(userId, pageable)
@@ -136,5 +141,9 @@ public class PostController {
 
     private ResponseEntity<?> unauthorizedResponse() {
         return ResponseEntity.status(401).body(Map.of("message", "로그인이 필요한 서비스입니다."));
+    }
+
+    private ResponseEntity<?> forbiddenResponse() {
+        return ResponseEntity.status(403).body(Map.of("message", "준회원 이상만 이용 가능한 서비스입니다."));
     }
 }
