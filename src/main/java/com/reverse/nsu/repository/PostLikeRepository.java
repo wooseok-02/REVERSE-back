@@ -19,4 +19,5 @@ public interface PostLikeRepository extends JpaRepository<PostLike, Integer> {
     // [추가] 게시글 삭제 테스트를 위해 필수!
     // 특정 게시글에 달린 모든 좋아요를 한 번에 삭제합니다.
     void deleteAllByPost(Post post);
+    void deleteAllByUserId(String userId);
 }
