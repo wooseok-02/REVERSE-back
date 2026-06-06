@@ -17,26 +17,36 @@ public class VoteResponseDto {
     private final String content;
     private final LocalDateTime deadline;
     private final Boolean isMultiple;
+    private final Boolean isSecret;
+    private final Integer participantRole;
+    private final Integer resultViewRole;
     private final Boolean isClosed;
     private final LocalDateTime createdDate;
     private final LocalDateTime modifiedDate;
     private final List<OptionDto> options;
 
-    // 내가 투표한 optionId (미로그인 시 null)
+    /** 내가 투표한 optionId (미로그인 또는 미투표 시 null) */
     private final Integer myVotedOptionId;
 
-    public VoteResponseDto(Vote vote, Integer myVotedOptionId) {
+    /**
+     * @param canViewResult true 이면 각 option의 voteCount를 실제 값으로 반환,
+     *                      false 이면 voteCount를 null로 숨겨 반환
+     */
+    public VoteResponseDto(Vote vote, Integer myVotedOptionId, boolean canViewResult) {
         this.voteId = vote.getVoteId();
         this.userId = vote.getUserId();
         this.title = vote.getTitle();
         this.content = vote.getContent();
         this.deadline = vote.getDeadline();
         this.isMultiple = vote.getIsMultiple();
+        this.isSecret = vote.getIsSecret();
+        this.participantRole = vote.getParticipantRole();
+        this.resultViewRole = vote.getResultViewRole();
         this.isClosed = vote.isClosed();
         this.createdDate = vote.getCreatedDate();
         this.modifiedDate = vote.getModifiedDate();
         this.options = vote.getOptions().stream()
-                .map(OptionDto::new)
+                .map(opt -> new OptionDto(opt, canViewResult))
                 .collect(Collectors.toList());
         this.myVotedOptionId = myVotedOptionId;
     }
@@ -46,13 +56,14 @@ public class VoteResponseDto {
         private final Integer optionId;
         private final String optionText;
         private final Integer sortOrder;
+        /** 결과 조회 권한이 없으면 null */
         private final Integer voteCount;
 
-        public OptionDto(VoteOption option) {
+        public OptionDto(VoteOption option, boolean canViewResult) {
             this.optionId = option.getOptionId();
             this.optionText = option.getOptionText();
             this.sortOrder = option.getSortOrder();
-            this.voteCount = option.getVoteCount();
+            this.voteCount = canViewResult ? option.getVoteCount() : null;
         }
     }
 }
