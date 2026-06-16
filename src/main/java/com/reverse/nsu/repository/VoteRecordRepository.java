@@ -16,4 +16,5 @@ public interface VoteRecordRepository extends JpaRepository<VoteRecord, Integer>
     List<VoteRecord> findAllByVote(Vote vote);
     void deleteAllByVote(Vote vote);
     void deleteAllByOption(VoteOption option);
+    void deleteAllByUserId(String userId);
 }

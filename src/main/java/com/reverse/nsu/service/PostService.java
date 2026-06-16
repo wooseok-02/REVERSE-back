@@ -24,8 +24,9 @@ public class PostService {
     private final PostRepository postRepository;
     private final UsersRepository usersRepository;
     private final PostAttachedRepository postAttachedRepository;
-    private final PostLikeRepository postLikeRepository; // [추가] 좋아요 삭제용
-    private final CommentRepository commentRepository;   // [추가] 댓글/대댓글 삭제용
+    private final PostLikeRepository postLikeRepository;
+    private final CommentRepository commentRepository;
+    private final RoleCheckService roleCheckService;
 
     /**
      * 게시글 작성
@@ -52,7 +53,7 @@ public class PostService {
     @Transactional
     public void updatePost(Integer postId, NoticeAdminRequestDto dto, String userId) {
         Post post = findPostOrThrow(postId);
-        if (!post.getUserId().equals(userId)) {
+        if (!post.getUserId().equals(userId) && !roleCheckService.isAdmin(userId)) {
             throw new IllegalStateException("수정 권한이 없습니다.");
         }
         validateDto(dto);
@@ -75,8 +76,7 @@ public class PostService {
     public void deletePost(Integer postId, String userId) {
         Post post = findPostOrThrow(postId);
 
-        // 관리자 권한 확인 로직 (userId가 "ADMIN"이거나 실제 작성자인 경우)
-        if (!post.getUserId().equals(userId) && !userId.equals("ADMIN")) {
+        if (!post.getUserId().equals(userId) && !roleCheckService.isAdmin(userId)) {
             throw new IllegalStateException("삭제 권한이 없습니다.");
         }
 

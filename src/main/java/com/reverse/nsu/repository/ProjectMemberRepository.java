@@ -34,4 +34,6 @@ public interface ProjectMemberRepository extends JpaRepository<ProjectMember, In
     @Modifying
     @Transactional
     void deleteByProjectAndUserId(Project project, String userId);
+
+    void deleteAllByUserId(String userId);
 }

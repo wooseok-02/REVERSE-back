@@ -84,4 +84,11 @@ public class BoardService {
             return true;
         }
     }
+
+    //카테고리 조회
+    public List<com.reverse.nsu.dto.BoardCategoryResponseDto> getCategories() {
+        return boardRepository.findAll().stream()
+                .map(com.reverse.nsu.dto.BoardCategoryResponseDto::new)
+                .collect(Collectors.toList());
+    }
 }

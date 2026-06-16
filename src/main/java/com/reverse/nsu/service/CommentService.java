@@ -20,6 +20,7 @@ public class CommentService {
 
     private final CommentRepository commentRepository;
     private final PostRepository postRepository;
+    private final RoleCheckService roleCheckService;
 
     /**
      * 댓글 목록 조회 (계층형 - 원댓글 + 대댓글)
@@ -102,7 +103,7 @@ public class CommentService {
         Comment comment = commentRepository.findById(commentId)
                 .orElseThrow(() -> new IllegalArgumentException("NOT_FOUND"));
 
-        if (!comment.getUserId().equals(userId)) {
+        if (!comment.getUserId().equals(userId) && !roleCheckService.isAdmin(userId)) {
             throw new SecurityException("FORBIDDEN");
         }
 
@@ -118,7 +119,7 @@ public class CommentService {
         Comment comment = commentRepository.findById(commentId)
                 .orElseThrow(() -> new IllegalArgumentException("NOT_FOUND"));
 
-        if (!comment.getUserId().equals(userId)) {
+        if (!comment.getUserId().equals(userId) && !roleCheckService.isAdmin(userId)) {
             throw new SecurityException("FORBIDDEN");
         }
 

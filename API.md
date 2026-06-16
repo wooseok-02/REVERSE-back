@@ -3,7 +3,7 @@
 - **Base URL**: `http://localhost:8080`
 - **응답 형식**: JSON (이미지 업로드 응답은 plain text)
 - **작성일**: 2026.04.09
-- **최종 수정일**: 2026.05.30
+- **최종 수정일**: 2026.06.05 (회원 관리 Admin 추가)
 
 ---
 
@@ -29,6 +29,9 @@
 18. [IT 이슈 (IT Issue)](#18-it-이슈-it-issue)
 19. [투표 (Vote)](#19-투표-vote)
 20. [게시판 관리 Admin (Board Admin)](#20-게시판-관리-admin-board-admin)
+21. [마이페이지 (My Page)](#21-마이페이지-my-page)
+22. [프로젝트 관리자 (Project Admin)](#22-프로젝트-관리자-project-admin)
+23. [회원 관리 Admin (User Admin)](#23-회원-관리-admin-user-admin)
 
 ---
 
@@ -2421,10 +2424,12 @@ AI Times 최신 IT 이슈 6개를 조회한다. 비로그인 접근 가능.
 
 Base Path: `/api/votes`
 
+> **역할(roleId) 체계**: 1=최고관리자, 2=관리자, 3=정회원, 4=준회원, 5=게스트
+
 ---
 
 ### POST /api/votes
-투표를 작성한다.
+투표를 생성한다.
 
 - **인증**: 필요
 
@@ -2436,6 +2441,9 @@ Base Path: `/api/votes`
 | `content` | String | N | 투표 설명 |
 | `deadline` | LocalDateTime | N | 마감 일시 (예: `2026-06-10T23:59:00`) |
 | `isMultiple` | Boolean | N | 복수 선택 여부 (기본값: `false`) |
+| `isSecret` | Boolean | N | 비밀투표 여부 (기본값: `false`) |
+| `participantRole` | Integer | N | 투표 참가 가능 최소 roleId (기본값: `3` = 정회원 이상) |
+| `resultViewRole` | Integer | N | 결과 조회 가능 최소 roleId (기본값: `3`, 공개투표일 때만 적용) |
 | `options` | String[] | Y | 투표 항목 목록 (최소 2개) |
 
 ```json
@@ -2444,6 +2452,9 @@ Base Path: `/api/votes`
   "content": "이번 주 동아리 모임 장소를 투표해주세요.",
   "deadline": "2026-06-10T23:59:00",
   "isMultiple": false,
+  "isSecret": false,
+  "participantRole": 3,
+  "resultViewRole": 3,
   "options": ["강의실 302호", "도서관 세미나실", "카페 스터디룸"]
 }
 ```
@@ -2456,8 +2467,7 @@ Base Path: `/api/votes`
 **에러 응답**
 | 상황 | HTTP 상태 |
 |---|---|
-| 토큰 없음 | `401` |
-| 존재하지 않는 게시글 | `404` |
+| 토큰 없음/만료 | `401` — 로그인이 필요한 서비스입니다. |
 
 ---
 
@@ -2483,6 +2493,9 @@ Base Path: `/api/votes`
       "title": "이번 주 모임 장소",
       "deadline": "2026-06-10T23:59:00",
       "isClosed": false,
+      "isSecret": false,
+      "participantRole": 3,
+      "resultViewRole": 3,
       "optionCount": 3,
       "totalVoteCount": 5,
       "createdDate": "2026-05-30T21:58:42"
@@ -2497,9 +2510,14 @@ Base Path: `/api/votes`
 ---
 
 ### GET /api/votes/{voteId}
-투표 상세 정보를 조회한다. 로그인 시 내 투표 여부(`myVotedOptionId`)도 반환.
+투표 상세 정보를 조회한다.
 
-- **인증**: 선택 (로그인 시 `myVotedOptionId` 포함)
+- **인증**: 선택 (로그인 시 `myVotedOptionId` 포함 및 결과 가시성 적용)
+- 결과 가시성(`voteCount`):
+  - 관리자·최고관리자: 항상 표시
+  - 생성자: 항상 표시
+  - 비밀투표: 위 두 경우 외에는 `voteCount = null`
+  - 공개투표: `resultViewRole` 이하 roleId 사용자에게 표시, 그 외 `null`
 
 **Path Variable**
 
@@ -2516,6 +2534,9 @@ Base Path: `/api/votes`
   "content": "이번 주 동아리 모임 장소를 투표해주세요.",
   "deadline": "2026-06-10T23:59:00",
   "isMultiple": false,
+  "isSecret": false,
+  "participantRole": 3,
+  "resultViewRole": 3,
   "isClosed": false,
   "createdDate": "2026-05-30T21:58:42",
   "modifiedDate": null,
@@ -2529,6 +2550,65 @@ Base Path: `/api/votes`
 ```
 
 > `myVotedOptionId`: 미로그인 또는 미투표 시 `null`
+> `voteCount`: 결과 조회 권한 없을 경우 `null`
+
+---
+
+### GET /api/votes/{voteId}/result
+투표 상세 결과를 조회한다. 옵션별 voteCount와 투표자 목록을 반환한다.
+
+- **인증**: 필요
+- **접근 권한**:
+  - 비밀투표: 생성자 또는 관리자·최고관리자만
+  - 공개투표: 생성자·관리자 항상, 그 외 `resultViewRole` 이하 roleId 사용자
+- **투표자 목록(`voters`)**: 관리자·최고관리자에게만 포함, 그 외 `null`
+
+**Path Variable**
+
+| 파라미터 | 타입 | 설명 |
+|---|---|---|
+| `voteId` | Integer | 조회할 투표 ID |
+
+**응답 `200 OK`**
+```json
+{
+  "voteId": 1,
+  "creatorId": "user01",
+  "title": "이번 주 모임 장소",
+  "content": "이번 주 동아리 모임 장소를 투표해주세요.",
+  "isSecret": false,
+  "participantRole": 3,
+  "resultViewRole": 3,
+  "deadline": "2026-06-10T23:59:00",
+  "isClosed": false,
+  "totalVoteCount": 5,
+  "options": [
+    {
+      "optionId": 1,
+      "optionText": "강의실 302호",
+      "sortOrder": 0,
+      "voteCount": 0,
+      "voters": null
+    },
+    {
+      "optionId": 2,
+      "optionText": "도서관 세미나실",
+      "sortOrder": 1,
+      "voteCount": 3,
+      "voters": ["admin01", "user02", "user03"]
+    }
+  ]
+}
+```
+
+> `voters`: 관리자만 포함됨, 그 외 `null`
+
+**에러 응답**
+| 상황 | HTTP 상태 |
+|---|---|
+| 토큰 없음/만료 | `401` — 로그인이 필요한 서비스입니다. |
+| 결과 조회 권한 없음 | `403` — 비밀투표의 결과는 투표 생성자와 관리자만 조회할 수 있습니다. |
+| 존재하지 않는 투표 | `404` |
 
 ---
 
@@ -2536,6 +2616,7 @@ Base Path: `/api/votes`
 투표한다. 1인 1표 제한.
 
 - **인증**: 필요
+- **참가 권한**: 관리자는 항상 가능. 그 외 사용자는 `participantRole` 이하 roleId 필요
 
 **Path Variable**
 
@@ -2561,6 +2642,7 @@ Base Path: `/api/votes`
 **에러 응답**
 | 상황 | HTTP 상태 |
 |---|---|
+| 참가 권한 없음 | `403` — 이 투표에 참가할 권한이 없습니다. |
 | 이미 투표한 경우 | `400` — 이미 투표하셨습니다. |
 | 마감된 투표 | `400` — 마감된 투표입니다. |
 | optionId 누락 | `400` — optionId는 필수입니다. |
@@ -2594,7 +2676,7 @@ Base Path: `/api/votes`
 ---
 
 ### PATCH /api/votes/{voteId}
-투표를 수정한다. 작성자 본인만 가능하며, 투표가 시작된 후(투표 기록 존재)에는 수정 불가.
+투표를 수정한다. 생성자 또는 관리자만 가능. 투표가 시작된 후(투표 기록 존재)에는 수정 불가.
 
 - **인증**: 필요
 
@@ -2604,7 +2686,7 @@ Base Path: `/api/votes`
 |---|---|---|
 | `voteId` | Integer | 수정할 투표 ID |
 
-**요청 Body** — POST /api/votes 와 동일
+**요청 Body** — POST /api/votes 와 동일한 구조
 
 **응답 `200 OK`**
 ```json
@@ -2614,14 +2696,14 @@ Base Path: `/api/votes`
 **에러 응답**
 | 상황 | HTTP 상태 |
 |---|---|
-| 본인 아님 | `403` — 수정 권한이 없습니다. |
+| 본인 아님 / 관리자 아님 | `403` — 수정 권한이 없습니다. |
 | 투표 시작 후 수정 시도 | `403` — 투표가 시작된 후에는 수정할 수 없습니다. |
 | 토큰 없음/만료 | `401` — 로그인이 필요한 서비스입니다. |
 
 ---
 
 ### DELETE /api/votes/{voteId}
-투표를 삭제한다. 작성자 본인만 가능.
+투표를 삭제한다. 생성자 또는 관리자만 가능.
 
 - **인증**: 필요
 
@@ -2639,16 +2721,18 @@ Base Path: `/api/votes`
 **에러 응답**
 | 상황 | HTTP 상태 |
 |---|---|
-| 토큰 없음 | `401` |
-| 존재하지 않는 게시판 | `404` |
-| 본인 아님 | `403` — 삭제 권한이 없습니다. |
 | 토큰 없음/만료 | `401` — 로그인이 필요한 서비스입니다. |
+| 본인 아님 / 관리자 아님 | `403` — 삭제 권한이 없습니다. |
 
 ---
 
 ## 20. 게시판 관리 Admin (Board Admin)
 
-> 모든 엔드포인트 JWT 인증 필요 (`Authorization: Bearer {token}`)
+Base Path: `/api/admin`
+
+> 모든 엔드포인트 JWT 인증 필요 (`Authorization: Bearer {token}`) — 관리자 권한 필요
+
+---
 
 ### DELETE /api/admin/posts/{postId}
 관리자가 게시글을 강제 삭제한다. 작성자 무관하게 삭제 가능.
@@ -2692,7 +2776,7 @@ Base Path: `/api/votes`
 
 **응답 `201 Created`**
 ```json
-{ "success": true, "data": { "boardId": 5, "boardName": "자유게시판", ... }, "message": "게시판이 추가되었습니다." }
+{ "success": true, "data": { "boardId": 5, "boardName": "자유게시판", "boardDescription": "자유롭게 작성하는 게시판" }, "message": "게시판이 추가되었습니다." }
 ```
 
 ---
@@ -2711,6 +2795,242 @@ Base Path: `/api/votes`
 | 토큰 없음 | `401` |
 | 관리자 아님 | `403` |
 | 존재하지 않는 게시판 | `404` |
+
+---
+
+## 21. 마이페이지 (My Page)
+
+Base Path: `/api/mypage`
+
+> 모든 엔드포인트 로그인 필수 — `Authorization: Bearer {token}`
+
+---
+
+### GET /api/mypage/{targetUserId}
+특정 사용자의 마이페이지 정보를 조회한다. 본인 여부(`isOwner`)를 함께 반환하여 수정 UI를 제어한다.
+
+**Path Variable**
+
+| 파라미터 | 타입 | 설명 |
+|---|---|---|
+| `targetUserId` | String | 조회할 사용자 ID |
+
+**응답 `200 OK`**
+```json
+{
+  "userId": "user01",
+  "userName": "홍길동",
+  "userEmail": "hong@example.com",
+  "userMbti": "INTJ",
+  "userIntroduce": "안녕하세요!",
+  "userPhotoUrl": "https://pub-xxx.r2.dev/photo/uuid.png",
+  "roleName": "부원",
+  "isOwner": true
+}
+```
+
+> `userPhotoUrl`: 프로필 사진 미등록 시 `null`
+
+---
+
+### PATCH /api/mypage/introduce
+본인의 한 줄 자기소개를 수정한다.
+
+**요청 Body** `application/json`
+
+| 필드 | 타입 | 필수 | 설명 |
+|---|---|---|---|
+| `userIntroduce` | String | Y | 수정할 자기소개 (글자 수 제한 있음) |
+
+```json
+{ "userIntroduce": "새로운 한 줄 소개입니다." }
+```
+
+**응답 `200 OK`**
+```json
+{ "success": true, "message": "자기소개가 성공적으로 수정되었습니다." }
+```
+
+**에러 응답**
+| 상황 | HTTP 상태 |
+|---|---|
+| 글자 수 초과 등 유효성 실패 | `400` — 사유 메시지 반환 |
+
+---
+
+### POST /api/mypage/photo
+본인의 프로필 사진을 변경한다. R2에 이미지 업로드 후 반환된 메타데이터를 전달한다.
+
+**요청 Body** `application/json`
+
+| 필드 | 타입 | 필수 | 설명 |
+|---|---|---|---|
+| `attachedName` | String | Y | 업로드된 파일명 |
+| `attachedUrl` | String | Y | R2 업로드 후 반환된 이미지 URL |
+| `attachedSize` | Integer | N | 파일 크기 (bytes) |
+
+```json
+{
+  "attachedName": "profile.png",
+  "attachedUrl": "https://pub-xxx.r2.dev/photo/uuid-profile.png",
+  "attachedSize": 204800
+}
+```
+
+**응답 `200 OK`**
+```json
+{ "success": true, "message": "프로필 사진이 성공적으로 변경되었습니다." }
+```
+
+**에러 응답**
+| 상황 | HTTP 상태 |
+|---|---|
+| 이미지 주소 누락 등 유효성 실패 | `400` — 사유 메시지 반환 |
+
+---
+
+## 22. 프로젝트 관리자 (Project Admin)
+
+Base Path: `/api/admin/projects`
+
+> 모든 엔드포인트 JWT 인증 필요 — 관리자(roleId 1 또는 2)만 접근 가능
+
+---
+
+### GET /api/admin/projects
+모든 프로젝트를 페이징하여 조회한다.
+
+**Query Parameter**
+
+| 파라미터 | 타입 | 필수 | 설명 |
+|---|---|---|---|
+| `page` | Integer | N | 페이지 번호 (기본값: `0`) |
+| `size` | Integer | N | 페이지 크기 (기본값: `10`) |
+
+**응답 `200 OK`** (Page) — `GET /api/projects` 목록 응답과 동일한 구조
+
+**에러 응답**
+| 상황 | HTTP 상태 |
+|---|---|
+| 관리자 아님 | `403` — 관리자만 접근 가능한 페이지입니다. |
+
+---
+
+### PATCH /api/admin/projects/{projectId}/close
+프로젝트를 강제 종료(상태 `CLOSED`) 처리한다.
+
+**Path Variable**
+
+| 파라미터 | 타입 | 설명 |
+|---|---|---|
+| `projectId` | Integer | 종료할 프로젝트 ID |
+
+**응답 `200 OK`**
+```json
+{}
+```
+
+**에러 응답**
+| 상황 | HTTP 상태 |
+|---|---|
+| 관리자 아님 | `403` — 해당 작업을 수행할 권한이 없습니다. |
+| 존재하지 않는 ID | `400` — 사유 메시지 반환 |
+
+---
+
+### DELETE /api/admin/projects/{projectId}
+프로젝트를 강제 삭제한다. 작성자 무관하게 삭제 가능.
+
+**Path Variable**
+
+| 파라미터 | 타입 | 설명 |
+|---|---|---|
+| `projectId` | Integer | 삭제할 프로젝트 ID |
+
+**응답 `200 OK`**
+```json
+{}
+```
+
+**에러 응답**
+| 상황 | HTTP 상태 |
+|---|---|
+| 관리자 아님 | `403` — 해당 작업을 수행할 권한이 없습니다. |
+| 존재하지 않는 ID | `400` — 사유 메시지 반환 |
+
+---
+
+## 23. 회원 관리 Admin (User Admin)
+
+> **Base Path**: `/api/admin/users`
+> **인증**: 모든 엔드포인트에 Bearer 토큰 필수
+> **권한**: **최고관리자(roleId=1)만** 접근 가능
+
+---
+
+### PATCH /api/admin/users/{targetUserId}/role
+
+회원 권한을 수정한다.
+
+**Path Variable**
+
+| 파라미터 | 타입 | 설명 |
+|---|---|---|
+| `targetUserId` | String | 권한을 변경할 대상 userId |
+
+**Request Body**
+
+```json
+{ "roleId": 3 }
+```
+
+| 필드 | 타입 | 필수 | 설명 |
+|---|---|---|---|
+| `roleId` | Integer | ✅ | 변경할 roleId (1=최고관리자, 2=관리자, 3=정회원, 4=준회원, 5=게스트) |
+
+**응답 `200 OK`**
+```json
+{ "status": "success", "message": "권한이 수정되었습니다." }
+```
+
+**에러 응답**
+
+| 상황 | HTTP 상태 |
+|---|---|
+| 미인증 | `401` — 로그인이 필요한 서비스입니다. |
+| 최고관리자 아님 | `403` — 최고관리자만 접근할 수 있습니다. |
+| 존재하지 않는 회원 | `404` — 존재하지 않는 회원입니다. |
+| 존재하지 않는 roleId | `404` — 존재하지 않는 권한입니다. |
+| roleId 누락 | `400` — roleId는 필수입니다. |
+
+> 변경 시 최고관리자 메일로 감사 로그(변경자 ID, 변경 내용, 변경 일시)가 자동 발송된다.
+
+---
+
+### DELETE /api/admin/users/{targetUserId}
+
+회원을 강제 탈퇴 처리한다.
+
+**Path Variable**
+
+| 파라미터 | 타입 | 설명 |
+|---|---|---|
+| `targetUserId` | String | 강제 탈퇴시킬 대상 userId |
+
+**응답 `200 OK`**
+```json
+{ "status": "success", "message": "강제 탈퇴 처리되었습니다." }
+```
+
+**에러 응답**
+
+| 상황 | HTTP 상태 |
+|---|---|
+| 미인증 | `401` — 로그인이 필요한 서비스입니다. |
+| 최고관리자 아님 | `403` — 최고관리자만 접근할 수 있습니다. |
+| 존재하지 않는 회원 | `404` — 존재하지 않는 회원입니다. |
+
+> 처리 후 최고관리자 메일로 감사 로그(변경자 ID, 대상 ID, 변경 일시)가 자동 발송된다.
 
 ---
 
