@@ -50,4 +50,6 @@ public interface PostRepository extends JpaRepository<Post, Integer> {
 
     @Query("SELECT SUM(p.postLikeCount) FROM Post p WHERE p.userId = :userId")
     Integer sumPostLikeCountByUserId(@Param("userId") String userId);
+
+    void deleteAllByUserId(String userId);
 }

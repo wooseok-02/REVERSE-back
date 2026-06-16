@@ -3,9 +3,12 @@ package com.reverse.nsu.controller;
 import com.reverse.nsu.dto.RecruitmentRequestDto;
 import com.reverse.nsu.dto.RecruitmentResponseDto;
 import com.reverse.nsu.entity.Recruitment;
+import com.reverse.nsu.service.EmailService;
 import com.reverse.nsu.service.RecruitmentAdminService;
 import com.reverse.nsu.service.RecruitmentNotifyService;
 import com.reverse.nsu.service.RecruitmentService;
+import com.reverse.nsu.service.RoleCheckService;
+import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
 import org.springframework.core.io.InputStreamResource;
 import org.springframework.http.HttpHeaders;
@@ -27,18 +30,23 @@ public class RecruitmentAdminController {
     private final RecruitmentService recruitmentService;
     private final RecruitmentAdminService recruitmentAdminService;
     private final RecruitmentNotifyService notifyService;
+    private final RoleCheckService roleCheckService;
+    private final EmailService emailService;
 
     /**
      * 1. 특정 공고의 지원자 목록 조회
      */
     @GetMapping("/applications")
-    public ResponseEntity<List<RecruitmentResponseDto.ApplicationDetails>> getApplications(
+    public ResponseEntity<?> getApplications(
             @RequestParam Integer recruitmentId,
-            @RequestParam Integer roleId,
             @RequestParam(required = false) String name,
-            @RequestParam(required = false) String status) {
+            @RequestParam(required = false) String status,
+            HttpServletRequest request) {
 
-        recruitmentAdminService.validateAdminRole(roleId);
+        String userId = resolveUserId(request);
+        if (userId == null) return unauthorized();
+        if (!roleCheckService.isAdmin(userId)) return forbidden();
+
         return ResponseEntity.ok(recruitmentAdminService.getApplicationsByRecruit(recruitmentId, name, status));
     }
 
@@ -46,14 +54,18 @@ public class RecruitmentAdminController {
      * 2. 지원서 상태 변경
      */
     @PatchMapping("/applications/status")
-    public ResponseEntity<?> updateStatus(@RequestBody Map<String, Object> request) {
-        Integer roleId = (Integer) request.get("roleId");
-        recruitmentAdminService.validateAdminRole(roleId);
+    public ResponseEntity<?> updateStatus(
+            @RequestBody Map<String, Object> body,
+            HttpServletRequest request) {
 
-        Integer applicationId = (Integer) request.get("applicationId");
-        String status = (String) request.get("status");
+        String userId = resolveUserId(request);
+        if (userId == null) return unauthorized();
+        if (!roleCheckService.isAdmin(userId)) return forbidden();
 
+        Integer applicationId = (Integer) body.get("applicationId");
+        String status = (String) body.get("status");
         recruitmentAdminService.updateApplicationStatus(applicationId, status);
+        emailService.sendAuditLog(userId, "지원서 상태 변경 (applicationId: " + applicationId + ") → " + status);
 
         return ResponseEntity.ok(Map.of(
                 "status", "success",
@@ -65,16 +77,17 @@ public class RecruitmentAdminController {
      * 3. 공고 생성 (상세 페이지 자동 생성 포함)
      */
     @PostMapping
-    public ResponseEntity<?> create(@RequestBody Map<String, Object> request) {
-        // 1. 권한 체크
-        Integer roleId = (Integer) request.get("roleId");
-        recruitmentAdminService.validateAdminRole(roleId);
+    public ResponseEntity<?> create(
+            @RequestBody Map<String, Object> body,
+            HttpServletRequest request) {
 
-        // 2. 서비스 호출 (공고 + 상세페이지 동시 생성)
-        Recruitment recruitment = recruitmentAdminService.createRecruitment(request);
+        String userId = resolveUserId(request);
+        if (userId == null) return unauthorized();
+        if (!roleCheckService.isAdmin(userId)) return forbidden();
 
-        // 3. 알림 서비스 호출
+        Recruitment recruitment = recruitmentAdminService.createRecruitment(body);
         notifyService.notifySubscribers(recruitment.getTitle());
+        emailService.sendAuditLog(userId, "모집 공고 등록 - 제목: " + recruitment.getTitle());
 
         return ResponseEntity.ok(Map.of(
                 "status", "success",
@@ -90,14 +103,15 @@ public class RecruitmentAdminController {
     @PutMapping("/{id}")
     public ResponseEntity<?> update(
             @PathVariable Integer id,
-            @RequestBody Map<String, Object> request) {
+            @RequestBody Map<String, Object> body,
+            HttpServletRequest request) {
 
-        // 1. 권한 체크
-        Integer roleId = (Integer) request.get("roleId");
-        recruitmentAdminService.validateAdminRole(roleId);
+        String userId = resolveUserId(request);
+        if (userId == null) return unauthorized();
+        if (!roleCheckService.isAdmin(userId)) return forbidden();
 
-        // 2. 서비스 호출 (수정 로직 위임)
-        recruitmentAdminService.updateRecruitment(id, request);
+        recruitmentAdminService.updateRecruitment(id, body);
+        emailService.sendAuditLog(userId, "모집 공고 수정 (ID: " + id + ")");
 
         return ResponseEntity.ok(Map.of(
                 "status", "success",
@@ -110,9 +124,16 @@ public class RecruitmentAdminController {
      * 5. 공고 삭제
      */
     @DeleteMapping("/{id}")
-    public ResponseEntity<String> delete(@PathVariable Integer id, @RequestParam Integer roleId) {
-        recruitmentAdminService.validateAdminRole(roleId);
+    public ResponseEntity<?> delete(
+            @PathVariable Integer id,
+            HttpServletRequest request) {
+
+        String userId = resolveUserId(request);
+        if (userId == null) return unauthorized();
+        if (!roleCheckService.isAdmin(userId)) return forbidden();
+
         recruitmentService.delete(id);
+        emailService.sendAuditLog(userId, "모집 공고 삭제 (ID: " + id + ")");
         return ResponseEntity.ok("공고 삭제 완료. ID: " + id);
     }
 
@@ -120,11 +141,14 @@ public class RecruitmentAdminController {
      * 6. 지원서 상세 조회
      */
     @GetMapping("/applications/{applicationId}")
-    public ResponseEntity<RecruitmentResponseDto.ApplicationDetails> getApplicationDetail(
+    public ResponseEntity<?> getApplicationDetail(
             @PathVariable Integer applicationId,
-            @RequestParam Integer roleId) {
+            HttpServletRequest request) {
 
-        recruitmentAdminService.validateAdminRole(roleId);
+        String userId = resolveUserId(request);
+        if (userId == null) return unauthorized();
+        if (!roleCheckService.isAdmin(userId)) return forbidden();
+
         return ResponseEntity.ok(recruitmentAdminService.getApplicationDetail(applicationId));
     }
 
@@ -132,12 +156,15 @@ public class RecruitmentAdminController {
      * 7. 면접 스케줄 배정
      */
     @PostMapping("/applications/interview")
-    public ResponseEntity<?> setInterview(@RequestBody Map<String, Object> request) {
-        Integer roleId = (Integer) request.get("roleId");
-        recruitmentAdminService.validateAdminRole(roleId);
+    public ResponseEntity<?> setInterview(
+            @RequestBody Map<String, Object> body,
+            HttpServletRequest request) {
 
-        // 필요 시 recruitmentAdminService.setInterviewSchedule() 호출 로직 추가 가능
+        String userId = resolveUserId(request);
+        if (userId == null) return unauthorized();
+        if (!roleCheckService.isAdmin(userId)) return forbidden();
 
+        emailService.sendAuditLog(userId, "면접 스케줄 배정");
         return ResponseEntity.ok(Map.of("status", "success", "message", "면접 배정 완료"));
     }
 
@@ -145,13 +172,15 @@ public class RecruitmentAdminController {
      * 8. 엑셀 다운로드
      */
     @GetMapping("/applications/excel")
-    public ResponseEntity<InputStreamResource> downloadExcel(
+    public ResponseEntity<?> downloadExcel(
             @RequestParam Integer recruitmentId,
-            @RequestParam Integer roleId) throws IOException {
+            HttpServletRequest request) throws IOException {
 
-        recruitmentAdminService.validateAdminRole(roleId);
+        String userId = resolveUserId(request);
+        if (userId == null) return unauthorized();
+        if (!roleCheckService.isAdmin(userId)) return forbidden();
+
         ByteArrayInputStream in = recruitmentAdminService.downloadApplicationsExcel(recruitmentId);
-
         HttpHeaders headers = new HttpHeaders();
         headers.add("Content-Disposition", "attachment; filename=applications_recruit_" + recruitmentId + ".xlsx");
 
@@ -162,18 +191,20 @@ public class RecruitmentAdminController {
     }
 
     /**
-     * 9. [신규 추가] 상세 페이지 내용 수정 (Hero, Intros, Cards, Galleries, Contacts 통합)
+     * 9. 상세 페이지 내용 수정
      */
     @PatchMapping("/{id}/page")
     public ResponseEntity<?> updateRecruitmentPage(
             @PathVariable Integer id,
-            @RequestBody RecruitmentRequestDto.PageUpdate request) {
+            @RequestBody RecruitmentRequestDto.PageUpdate body,
+            HttpServletRequest request) {
 
-        // 1. 권한 체크
-        recruitmentAdminService.validateAdminRole(request.getRoleId());
+        String userId = resolveUserId(request);
+        if (userId == null) return unauthorized();
+        if (!roleCheckService.isAdmin(userId)) return forbidden();
 
-        // 2. 서비스 호출 (상세 페이지 수정 로직)
-        recruitmentAdminService.updateRecruitmentPage(id, request);
+        recruitmentAdminService.updateRecruitmentPage(id, body);
+        emailService.sendAuditLog(userId, "모집 공고 상세 페이지 수정 (ID: " + id + ")");
 
         return ResponseEntity.ok(Map.of(
                 "status", "success",
@@ -183,19 +214,36 @@ public class RecruitmentAdminController {
     }
 
     /**
-     * 10. [신규 추가] 면접 일정 슬롯 설정
+     * 10. 면접 일정 슬롯 설정
      */
     @PostMapping("/{id}/slots")
     public ResponseEntity<?> updateInterviewSlots(
             @PathVariable Integer id,
-            @RequestBody RecruitmentRequestDto.InterviewSlotUpdate request) {
+            @RequestBody RecruitmentRequestDto.InterviewSlotUpdate body,
+            HttpServletRequest request) {
 
-        recruitmentAdminService.validateAdminRole(request.getRoleId());
-        recruitmentAdminService.updateInterviewSlots(id, request);
+        String userId = resolveUserId(request);
+        if (userId == null) return unauthorized();
+        if (!roleCheckService.isAdmin(userId)) return forbidden();
+
+        recruitmentAdminService.updateInterviewSlots(id, body);
+        emailService.sendAuditLog(userId, "모집 공고 면접 슬롯 설정 (ID: " + id + ")");
 
         return ResponseEntity.ok(Map.of(
                 "status", "success",
                 "message", "면접 날짜 및 정원 설정 완료"
         ));
+    }
+
+    private String resolveUserId(HttpServletRequest request) {
+        return (String) request.getAttribute("userId");
+    }
+
+    private ResponseEntity<?> unauthorized() {
+        return ResponseEntity.status(401).body(Map.of("message", "로그인이 필요합니다."));
+    }
+
+    private ResponseEntity<?> forbidden() {
+        return ResponseEntity.status(403).body(Map.of("message", "관리자 권한이 필요합니다."));
     }
 }
