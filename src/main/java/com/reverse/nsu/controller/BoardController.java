@@ -92,6 +92,18 @@ public class BoardController {
         }
     }
 
+    /**
+     * [추가] 게시판 카테고리 목록 조회 (준회원 이상)
+     * GET /api/posts/board/categories
+     */
+    @GetMapping("/categories")
+    public ResponseEntity<?> getCategories(HttpServletRequest request) {
+        String userId = (String) request.getAttribute("userId");
+        if (!roleCheckService.isAssociateOrAbove(userId)) return forbiddenResponse();
+
+        return ResponseEntity.ok(ApiResponse.ok(boardService.getCategories()));
+    }
+
     private ResponseEntity<?> forbiddenResponse() {
         return ResponseEntity.status(403)
                 .body(ApiResponse.error("FORBIDDEN", "준회원 이상만 이용 가능한 서비스입니다."));

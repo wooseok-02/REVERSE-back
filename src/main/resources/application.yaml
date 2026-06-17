@@ -50,3 +50,6 @@ jwt:
 
 public-data:
   api-key: ${PUBLIC_DATA_API_KEY}
+
+app:
+  super-admin-email: admin@nsu.ac.kr
