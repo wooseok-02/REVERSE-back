@@ -1,9 +1,12 @@
 package com.reverse.nsu.service;
 
+import com.reverse.nsu.dto.UserListResponseDto;
 import com.reverse.nsu.entity.Role;
 import com.reverse.nsu.entity.Users;
 import com.reverse.nsu.repository.*;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -18,11 +21,20 @@ public class UserAdminService {
     private final UserConsentRepository userConsentRepository;
     private final ProjectMemberRepository projectMemberRepository;
     private final StudyMemberRepository studyMemberRepository;
+    private final StudyApplicationRepository studyApplicationRepository;
     private final VoteRecordRepository voteRecordRepository;
     private final PostLikeRepository postLikeRepository;
     private final CommentRepository commentRepository;
     private final VoteRepository voteRepository;
     private final PostRepository postRepository;
+
+    /**
+     * 전체 회원 조회 (관리자, 최고관리자 전용)
+     */
+    @Transactional(readOnly = true)
+    public Page<UserListResponseDto> getAllUsers(Pageable pageable) {
+        return usersRepository.findAll(pageable).map(UserListResponseDto::new);
+    }
 
     /**
      * 회원 권한 수정 (최고관리자 전용)
@@ -70,9 +82,10 @@ public class UserAdminService {
         // 5. 본인이 작성한 게시글 삭제 (cascade → PostLike, PostAttached, Comment)
         postRepository.deleteAllByUserId(targetUserId);
 
-        // 6. 프로젝트/스터디 멤버 기록 삭제
+        // 6. 프로젝트/스터디 멤버 및 스터디 신청 기록 삭제
         projectMemberRepository.deleteAllByUserId(targetUserId);
         studyMemberRepository.deleteAllByUserId(targetUserId);
+        studyApplicationRepository.deleteAllByUserId(targetUserId);
 
         // 7. 토큰, 사진, 동의 기록 삭제
         userTokenRepository.deleteAllByUserId(targetUserId);

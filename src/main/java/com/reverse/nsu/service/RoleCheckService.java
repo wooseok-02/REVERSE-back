@@ -43,4 +43,12 @@ public class RoleCheckService {
                 .map(u -> u.getRole() != null && u.getRole().getRoleId() <= 4)
                 .orElse(false);
     }
+
+    /** roleId <= 3 (정회원 이상: 정회원, 관리자, 최고관리자) */
+    public boolean isMemberOrAbove(String userId) {
+        if (userId == null) return false;
+        return usersRepository.findById(userId)
+                .map(u -> u.getRole() != null && u.getRole().getRoleId() <= 3)
+                .orElse(false);
+    }
 }
