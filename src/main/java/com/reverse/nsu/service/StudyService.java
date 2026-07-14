@@ -62,11 +62,12 @@ public class StudyService {
     }
 
     @Transactional
-    public StudyResponseDto updateStudy(Integer studyId, StudyRequestDto dto, String currentUserId) {
+    public StudyResponseDto updateStudy(Integer studyId, StudyRequestDto dto, String currentUserId, Integer roleId) {
         Study study = studyRepository.findById(studyId)
                 .orElseThrow(() -> new IllegalArgumentException("스터디를 찾을 수 없습니다."));
 
-        if (!study.getLeaderId().equals(currentUserId)) {
+        boolean isSuperAdmin = roleId != null && roleId == 1;
+        if (!study.getLeaderId().equals(currentUserId) && !isSuperAdmin) {
             throw new SecurityException("스터디 팀장만 수정할 수 있습니다.");
         }
 
@@ -96,11 +97,12 @@ public class StudyService {
     }
 
     @Transactional
-    public void deleteStudy(Integer studyId, String currentUserId) {
+    public void deleteStudy(Integer studyId, String currentUserId, Integer roleId) {
         Study study = studyRepository.findById(studyId)
                 .orElseThrow(() -> new IllegalArgumentException("스터디를 찾을 수 없습니다."));
 
-        if (!study.getLeaderId().equals(currentUserId)) {
+        boolean isSuperAdmin = roleId != null && roleId == 1;
+        if (!study.getLeaderId().equals(currentUserId) && !isSuperAdmin) {
             throw new SecurityException("스터디 팀장만 삭제할 수 있습니다.");
         }
 

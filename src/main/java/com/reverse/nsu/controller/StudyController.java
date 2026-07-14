@@ -3,6 +3,7 @@ package com.reverse.nsu.controller;
 import com.reverse.nsu.dto.StudyRequestDto;
 import com.reverse.nsu.dto.StudyResponseDto;
 import com.reverse.nsu.entity.StudyStatus;
+import com.reverse.nsu.repository.UsersRepository;
 import com.reverse.nsu.service.StudyService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
@@ -20,6 +21,14 @@ import java.util.Map;
 public class StudyController {
 
     private final StudyService studyService;
+    private final UsersRepository usersRepository;
+
+    private Integer resolveRoleId(String userId) {
+        if (userId == null) return null;
+        return usersRepository.findById(userId)
+                .map(u -> u.getRole() != null ? u.getRole().getRoleId() : null)
+                .orElse(null);
+    }
 
     // 목록 조회 (검색 & 상태 필터 포함, 비로그인 가능)
     @GetMapping
@@ -79,7 +88,7 @@ public class StudyController {
         }
 
         try {
-            StudyResponseDto response = studyService.updateStudy(studyId, dto, currentUserId);
+            StudyResponseDto response = studyService.updateStudy(studyId, dto, currentUserId, resolveRoleId(currentUserId));
             return ResponseEntity.ok(Map.of(
                     "success", true,
                     "data", response,
@@ -106,7 +115,7 @@ public class StudyController {
         }
 
         try {
-            studyService.deleteStudy(studyId, currentUserId);
+            studyService.deleteStudy(studyId, currentUserId, resolveRoleId(currentUserId));
             return ResponseEntity.ok(Map.of(
                     "success", true,
                     "message", "스터디가 삭제되었습니다."

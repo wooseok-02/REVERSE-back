@@ -2889,6 +2889,37 @@ Base Path: `/api/mypage`
 
 ---
 
+### PATCH /api/mypage/password
+본인의 비밀번호를 변경한다. 현재 비밀번호 확인이 필요하다.
+
+**요청 Body** `application/json`
+
+| 필드 | 타입 | 필수 | 설명 |
+|---|---|---|---|
+| `currentPassword` | String | Y | 현재 비밀번호 |
+| `newPassword` | String | Y | 새 비밀번호 (8자 이상, 현재 비밀번호와 달라야 함) |
+
+```json
+{
+  "currentPassword": "oldPassword123",
+  "newPassword": "newPassword456"
+}
+```
+
+**응답 `200 OK`**
+```json
+{ "success": true, "message": "비밀번호가 성공적으로 변경되었습니다." }
+```
+
+**에러 응답**
+| 상황 | HTTP 상태 |
+|---|---|
+| 현재 비밀번호 불일치 | `400` — "현재 비밀번호가 일치하지 않습니다." |
+| 새 비밀번호 8자 미만 | `400` — "새 비밀번호는 8자 이상이어야 합니다." |
+| 새 비밀번호가 현재 비밀번호와 동일 | `400` — "현재 비밀번호와 다른 비밀번호를 입력해주세요." |
+
+---
+
 ## 22. 프로젝트 관리자 (Project Admin)
 
 Base Path: `/api/admin/projects`
