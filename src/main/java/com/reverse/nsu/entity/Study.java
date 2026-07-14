@@ -77,6 +77,9 @@ public class Study {
     @OneToMany(mappedBy = "study", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<StudyCurriculum> curriculums = new ArrayList<>();
 
+    @OneToMany(mappedBy = "study", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<StudyApplication> applications = new ArrayList<>();
+
     @Builder
     public Study(String leaderId, String studyName, String leaderName, String language,
                  String techStack, String description, String goal, String location,

@@ -2,11 +2,13 @@ package com.reverse.nsu.service;
 
 import com.reverse.nsu.dto.MyPageResponseDto;
 import com.reverse.nsu.dto.MyPageUpdateRequestDto;
+import com.reverse.nsu.dto.PasswordChangeRequestDto;
 import com.reverse.nsu.entity.UserPhoto;
 import com.reverse.nsu.entity.Users;
 import com.reverse.nsu.repository.UserPhotoRepository;
 import com.reverse.nsu.repository.UsersRepository; // 기존 프로젝트의 레포지토리 이름에 맞추어 임포트하세요.
 import lombok.RequiredArgsConstructor;
+import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -16,6 +18,7 @@ public class MyPageService {
 
     private final UsersRepository usersRepository;
     private final UserPhotoRepository userPhotoRepository;
+    private final BCryptPasswordEncoder passwordEncoder;
 
     /**
      * 1. 마이페이지 회원 정보 조회 (본인/타인 공통)
@@ -83,5 +86,28 @@ public class MyPageService {
                     .build();
             userPhotoRepository.save(newPhoto);
         }
+    }
+
+    /**
+     * 4. 비밀번호 변경 (현재 비밀번호 확인 후 변경)
+     */
+    @Transactional
+    public void changePassword(PasswordChangeRequestDto dto, String currentUserId) {
+        Users user = usersRepository.findById(currentUserId)
+                .orElseThrow(() -> new IllegalArgumentException("사용자 정보를 찾을 수 없습니다."));
+
+        if (dto.getCurrentPassword() == null || !passwordEncoder.matches(dto.getCurrentPassword(), user.getUserPassword())) {
+            throw new IllegalArgumentException("현재 비밀번호가 일치하지 않습니다.");
+        }
+
+        if (dto.getNewPassword() == null || dto.getNewPassword().length() < 8) {
+            throw new IllegalArgumentException("새 비밀번호는 8자 이상이어야 합니다.");
+        }
+
+        if (passwordEncoder.matches(dto.getNewPassword(), user.getUserPassword())) {
+            throw new IllegalArgumentException("현재 비밀번호와 다른 비밀번호를 입력해주세요.");
+        }
+
+        user.updatePassword(passwordEncoder.encode(dto.getNewPassword()));
     }
 }

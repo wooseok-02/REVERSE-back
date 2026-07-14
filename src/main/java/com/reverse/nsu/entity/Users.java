@@ -55,4 +55,12 @@ public class Users {
     public void updateIntroduce(String userIntroduce) {
         this.userIntroduce = userIntroduce;
     }
+
+    /**
+     * 🔥 [마이페이지 비즈니스 메서드]
+     * - 비밀번호를 안전하게 변경합니다. (인코딩은 서비스 계층에서 처리)
+     */
+    public void updatePassword(String encodedPassword) {
+        this.userPassword = encodedPassword;
+    }
 }
