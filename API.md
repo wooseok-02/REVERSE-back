@@ -2326,6 +2326,129 @@ Base Path: `/api/studies`
 
 ---
 
+### POST /api/studies/{studyId}/apply
+스터디에 참여 신청한다. 승인 대기(`PENDING`) 상태로 등록되며, 팀장 또는 관리자/최고관리자가 승인해야 정식 멤버가 된다.
+
+> 로그인 필수 — `Authorization: Bearer {token}`
+> 권한: 정회원 이상 (정회원, 관리자, 최고관리자) — 준회원·게스트는 신청 불가
+
+**Path Variable**
+
+| 파라미터 | 타입 | 설명 |
+|---|---|---|
+| `studyId` | Integer | 신청할 스터디 ID |
+
+**요청 Body** `application/json`
+
+| 필드 | 타입 | 필수 | 설명 |
+|---|---|---|---|
+| `availabilities` | Array | ✅ | 참여 가능한 요일/시간 목록 (1개 이상) |
+| `availabilities[].dayOfWeek` | Integer | ✅ | 0=일 ~ 6=토 |
+| `availabilities[].availableTime` | String | ✅ | `"HH:mm"` 형태 |
+
+```json
+{
+  "availabilities": [
+    { "dayOfWeek": 1, "availableTime": "19:00" },
+    { "dayOfWeek": 3, "availableTime": "20:00" }
+  ]
+}
+```
+
+**응답 `200 OK`**
+```json
+{ "success": true, "message": "스터디 신청이 완료되었습니다. 승인을 기다려주세요." }
+```
+
+**에러 응답**
+| 상황 | HTTP 상태 |
+|---|---|
+| 토큰 없음/만료 | `401` — 로그인이 필요합니다. |
+| 정회원 미만(준회원/게스트) | `403` — 정회원 이상만 스터디를 신청할 수 있습니다. |
+| 가능 요일/시간 미입력 | `400` — 가능한 요일과 시간을 최소 1개 이상 선택해야 합니다. |
+| 이미 종료된 스터디 | `400` — 이미 종료된 스터디입니다. |
+| 이미 참여 중 | `400` — 이미 참여 중인 스터디입니다. |
+| 이미 신청하여 대기 중 | `400` — 이미 신청하여 승인을 기다리고 있습니다. |
+| 존재하지 않는 스터디 | `404` — 스터디를 찾을 수 없습니다. |
+
+---
+
+### GET /api/studies/{studyId}/applications
+스터디의 대기 중인 신청 목록을 조회한다. (팀장 또는 관리자/최고관리자)
+
+> 로그인 필수 — `Authorization: Bearer {token}`
+
+**Path Variable**
+
+| 파라미터 | 타입 | 설명 |
+|---|---|---|
+| `studyId` | Integer | 스터디 ID |
+
+**응답 `200 OK`**
+```json
+[
+  {
+    "studyApplicationId": 1,
+    "studyId": 1,
+    "userId": "user02",
+    "status": "PENDING",
+    "appliedDate": "2026-07-14T12:00:00",
+    "availabilities": [
+      { "dayOfWeek": 1, "availableTime": "19:00" }
+    ]
+  }
+]
+```
+
+**에러 응답**
+| 상황 | HTTP 상태 |
+|---|---|
+| 토큰 없음/만료 | `401` — 로그인이 필요합니다. |
+| 팀장/관리자 아님 | `403` — 스터디 팀장 또는 관리자만 처리할 수 있습니다. |
+| 존재하지 않는 스터디 | `404` — 스터디를 찾을 수 없습니다. |
+
+---
+
+### PATCH /api/studies/applications/{applicationId}/approve
+스터디 신청을 승인한다. 승인 시 신청자가 정식 멤버(`StudyMember`, MEMBER 역할)로 등록된다. (팀장 또는 관리자/최고관리자)
+
+> 로그인 필수 — `Authorization: Bearer {token}`
+
+**응답 `200 OK`**
+```json
+{ "success": true, "message": "신청이 승인되었습니다." }
+```
+
+**에러 응답**
+| 상황 | HTTP 상태 |
+|---|---|
+| 토큰 없음/만료 | `401` — 로그인이 필요합니다. |
+| 팀장/관리자 아님 | `403` — 스터디 팀장 또는 관리자만 처리할 수 있습니다. |
+| 이미 처리된 신청 | `400` — 이미 처리된 신청입니다. |
+| 존재하지 않는 신청 | `404` — 신청 내역을 찾을 수 없습니다. |
+
+---
+
+### PATCH /api/studies/applications/{applicationId}/reject
+스터디 신청을 반려한다. (팀장 또는 관리자/최고관리자)
+
+> 로그인 필수 — `Authorization: Bearer {token}`
+
+**응답 `200 OK`**
+```json
+{ "success": true, "message": "신청이 반려되었습니다." }
+```
+
+**에러 응답**
+| 상황 | HTTP 상태 |
+|---|---|
+| 토큰 없음/만료 | `401` — 로그인이 필요합니다. |
+| 팀장/관리자 아님 | `403` — 스터디 팀장 또는 관리자만 처리할 수 있습니다. |
+| 이미 처리된 신청 | `400` — 이미 처리된 신청입니다. |
+| 존재하지 않는 신청 | `404` — 신청 내역을 찾을 수 없습니다. |
+
+---
+
 ### PUT /api/studies/{studyId}
 스터디 정보를 수정한다. 팀장만 가능. `schedules`·`curriculums` 전달 시 기존 데이터를 교체한다.
 
@@ -2995,7 +3118,49 @@ Base Path: `/api/admin/projects`
 
 > **Base Path**: `/api/admin/users`
 > **인증**: 모든 엔드포인트에 Bearer 토큰 필수
-> **권한**: **최고관리자(roleId=1)만** 접근 가능
+> **권한**: 전체 회원 조회는 관리자(roleId=2)/최고관리자(roleId=1), 나머지는 **최고관리자(roleId=1)만** 접근 가능
+
+---
+
+### GET /api/admin/users
+
+전체 회원 목록을 조회한다. (관리자, 최고관리자)
+
+**Query Parameter** (페이지네이션, Spring `Pageable` 기본 규칙)
+
+| 파라미터 | 타입 | 필수 | 설명 |
+|---|---|---|---|
+| `page` | Integer | N | 페이지 번호 (0부터 시작, 기본값 0) |
+| `size` | Integer | N | 페이지 크기 (기본값 20) |
+| `sort` | String | N | 정렬 기준 (예: `createdDate,desc`) |
+
+**응답 `200 OK`**
+```json
+{
+  "content": [
+    {
+      "userId": "user01",
+      "userName": "홍길동",
+      "userEmail": "hong@example.com",
+      "userMbti": "INTJ",
+      "roleId": 3,
+      "roleName": "정회원",
+      "createdDate": "2026-01-01T12:00:00"
+    }
+  ],
+  "totalElements": 1,
+  "totalPages": 1,
+  "number": 0,
+  "size": 20
+}
+```
+
+**에러 응답**
+
+| 상황 | HTTP 상태 |
+|---|---|
+| 미인증 | `401` — 로그인이 필요한 서비스입니다. |
+| 관리자 아님 | `403` — 관리자만 접근할 수 있습니다. |
 
 ---
 

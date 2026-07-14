@@ -1,18 +1,23 @@
 package com.reverse.nsu.controller;
 
+import com.reverse.nsu.dto.UserListResponseDto;
 import com.reverse.nsu.service.EmailService;
 import com.reverse.nsu.service.RoleCheckService;
 import com.reverse.nsu.service.UserAdminService;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.web.PageableDefault;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.Map;
 
 /**
- * 최고관리자 전용 회원 관리 API
- * Base Path: /api/admin/users
+ * 회원 관리 API (Base Path: /api/admin/users)
+ * - 전체 회원 조회: 관리자, 최고관리자
+ * - 권한 수정 / 강제 탈퇴: 최고관리자 전용
  */
 @RestController
 @RequestMapping("/api/admin/users")
@@ -22,6 +27,25 @@ public class UserAdminController {
     private final UserAdminService userAdminService;
     private final RoleCheckService roleCheckService;
     private final EmailService emailService;
+
+    /**
+     * 전체 회원 조회
+     * - 관리자(roleId=2), 최고관리자(roleId=1) 가능
+     */
+    @GetMapping
+    public ResponseEntity<?> getAllUsers(
+            @PageableDefault(size = 20) Pageable pageable,
+            HttpServletRequest request) {
+
+        String userId = (String) request.getAttribute("userId");
+        if (userId == null) return unauthorized();
+        if (!roleCheckService.isAdmin(userId)) {
+            return ResponseEntity.status(403).body(Map.of("message", "관리자만 접근할 수 있습니다."));
+        }
+
+        Page<UserListResponseDto> result = userAdminService.getAllUsers(pageable);
+        return ResponseEntity.ok(result);
+    }
 
     /**
      * 회원 권한 수정
