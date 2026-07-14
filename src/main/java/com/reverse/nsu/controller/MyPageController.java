@@ -2,6 +2,7 @@ package com.reverse.nsu.controller;
 
 import com.reverse.nsu.dto.MyPageResponseDto;
 import com.reverse.nsu.dto.MyPageUpdateRequestDto;
+import com.reverse.nsu.dto.PasswordChangeRequestDto;
 import com.reverse.nsu.service.MyPageService;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
@@ -79,6 +80,32 @@ public class MyPageController {
 
         } catch (IllegalArgumentException e) {
             // 💡 이미지 주소 누락 등 예외 발생 시 400 Bad Request 반환
+            result.put("success", false);
+            result.put("message", e.getMessage());
+            return ResponseEntity.badRequest().body(result);
+        }
+    }
+
+    /**
+     * 4. 비밀번호 변경
+     */
+    @PatchMapping("/password")
+    public ResponseEntity<Map<String, Object>> changePassword(
+            @RequestBody PasswordChangeRequestDto dto,
+            HttpServletRequest request) {
+
+        String currentUserId = getCurrentUserIdFromRequest(request);
+        Map<String, Object> result = new HashMap<>();
+
+        try {
+            myPageService.changePassword(dto, currentUserId);
+
+            result.put("success", true);
+            result.put("message", "비밀번호가 성공적으로 변경되었습니다.");
+            return ResponseEntity.ok(result);
+
+        } catch (IllegalArgumentException e) {
+            // 💡 현재 비밀번호 불일치, 새 비밀번호 유효성 실패 등은 400 Bad Request로 반환
             result.put("success", false);
             result.put("message", e.getMessage());
             return ResponseEntity.badRequest().body(result);
