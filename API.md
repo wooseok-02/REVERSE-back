@@ -939,6 +939,7 @@ Base Path: `/api/recruit`
 | `portfolioUrl` | String | N | 포트폴리오 URL |
 | `termsAgreed` | Boolean | Y | 개인정보 수집 동의 여부 |
 | `categories` | List\<String\> | N | 지원 분야 목록 (예: `["메인프로젝트", "스터디"]`) |
+| `interviewSlotId` | Integer | N | 선택한 면접 슬롯 ID |
 
 ```json
 {
@@ -951,7 +952,8 @@ Base Path: `/api/recruit`
   "email": "hong@example.com",
   "portfolioUrl": "https://github.com/gildong",
   "termsAgreed": true,
-  "categories": ["메인프로젝트", "스터디"]
+  "categories": ["메인프로젝트", "스터디"],
+  "interviewSlotId": 1
 }
 ```
 
