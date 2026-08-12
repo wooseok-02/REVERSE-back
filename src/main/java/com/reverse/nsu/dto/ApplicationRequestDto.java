@@ -47,6 +47,8 @@ public class ApplicationRequestDto {
 
     private String portfolioUrl;
 
+    private Integer interviewSlotId;
+
     @AssertTrue(message = "개인정보 수집 동의가 필요합니다.")
     private Boolean termsAgreed;
 
@@ -65,6 +67,7 @@ public class ApplicationRequestDto {
                 .grade(this.grade)
                 .phoneNumber(this.phoneNumber) // 변경됨
                 .email(this.email)             // 변경됨
+                .portfolioUrl(this.portfolioUrl)
                 .termsAgreed(this.termsAgreed ? 1 : 0) // Integer 타입일 경우 대응
                 .status("PENDING")
                 .build();

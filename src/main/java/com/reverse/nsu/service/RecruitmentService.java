@@ -25,6 +25,8 @@ public class RecruitmentService {
     private final RecruitmentPageGalleryRepository galleryRepository;
     private final RecruitmentPageContactRepository contactRepository;
     private final RecruitmentApplicationRepository applicationRepository;
+    private final RecruitmentInterviewSlotRepository interviewSlotRepository;
+    private final ApplicationInterviewScheduleRepository interviewScheduleRepository;
     private final RecruitmentNotifyService notifyService;
 
     /**
@@ -56,9 +58,34 @@ public class RecruitmentService {
                 .grade(dto.getGrade())
                 .phoneNumber(dto.getPhoneNumber())
                 .email(dto.getEmail())
+                .portfolioUrl(dto.getPortfolioUrl())
                 .termsAgreed(dto.getTermsAgreed() ? 1 : 0)
                 .status("PENDING")
                 .build();
+
+        if (dto.getCategories() != null) {
+            dto.getCategories().stream()
+                    .filter(category -> category != null && !category.isBlank())
+                    .map(String::trim)
+                    .distinct()
+                    .forEach(application::addApplyField);
+        }
+
+        if (dto.getInterviewSlotId() != null) {
+            RecruitmentInterviewSlot slot = interviewSlotRepository.findByIdForUpdate(dto.getInterviewSlotId())
+                    .orElseThrow(() -> new IllegalArgumentException("유효하지 않은 면접 슬롯입니다."));
+
+            if (!slot.getRecruitment().getRecruitmentId().equals(dto.getRecruitmentId())) {
+                throw new IllegalArgumentException("해당 공고의 면접 슬롯이 아닙니다.");
+            }
+            if (!Boolean.TRUE.equals(slot.getIsActive())) {
+                throw new IllegalStateException("선택할 수 없는 면접 슬롯입니다.");
+            }
+            if (interviewScheduleRepository.countByInterviewSlot_SlotId(slot.getSlotId()) >= slot.getCapacity()) {
+                throw new IllegalStateException("선택한 면접 슬롯의 정원이 마감되었습니다.");
+            }
+            application.addInterviewSchedule(slot);
+        }
 
         applicationRepository.save(application);
         log.info(">>>> [지원서 제출 완료] 성함: {}, 학번: {}", dto.getApplicantName(), dto.getStudentNumber());
