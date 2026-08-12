@@ -45,9 +45,7 @@ public class RecruitmentAdminService {
      * 공고 및 상세 페이지 동시 생성
      */
     @Transactional
-    public Recruitment createRecruitment(Map<String, Object> request) {
-        String adminId = (String) request.get("adminId");
-
+    public Recruitment createRecruitment(Map<String, Object> request, String adminId) {
         RecruitmentPage page = RecruitmentPage.builder()
                 .heroTitle((String) request.get("title"))
                 .heroSubTitle("동아리 상세 정보")
@@ -77,7 +75,7 @@ public class RecruitmentAdminService {
      * 공고 기본 정보 수정 로직
      */
     @Transactional
-    public void updateRecruitment(Integer id, Map<String, Object> request) {
+    public void updateRecruitment(Integer id, Map<String, Object> request, String adminId) {
         Recruitment recruitment = recruitmentRepository.findById(id)
                 .orElseThrow(() -> new IllegalArgumentException("해당 공고가 존재하지 않습니다. ID: " + id));
 
@@ -86,7 +84,7 @@ public class RecruitmentAdminService {
                 (String) request.get("description"),
                 LocalDateTime.parse((String) request.get("applyStartDate")),
                 LocalDateTime.parse((String) request.get("applyEndDate")),
-                (String) request.get("adminId")
+                adminId
         );
     }
 
@@ -94,12 +92,11 @@ public class RecruitmentAdminService {
      * 상세 페이지 통합 수정 로직 (Hero, Intro, Card, Gallery, Contact)
      */
     @Transactional
-    public void updateRecruitmentPage(Integer recruitmentId, RecruitmentRequestDto.PageUpdate dto) {
+    public void updateRecruitmentPage(Integer recruitmentId, RecruitmentRequestDto.PageUpdate dto, String adminId) {
         Recruitment recruitment = recruitmentRepository.findById(recruitmentId)
                 .orElseThrow(() -> new EntityNotFoundException("공고를 찾을 수 없습니다. ID: " + recruitmentId));
 
         RecruitmentPage page = recruitment.getRecruitmentPage();
-        String adminId = dto.getAdminId();
 
         // 1. Hero 섹션 업데이트
         page.setHeroYear(dto.getHeroYear());
@@ -154,7 +151,7 @@ public class RecruitmentAdminService {
      * 면접 일정 슬롯 설정 로직 (기존 슬롯 초기화 후 재생성)
      */
     @Transactional
-    public void updateInterviewSlots(Integer recruitmentId, RecruitmentRequestDto.InterviewSlotUpdate dto) {
+    public void updateInterviewSlots(Integer recruitmentId, RecruitmentRequestDto.InterviewSlotUpdate dto, String adminId) {
         Recruitment recruitment = recruitmentRepository.findById(recruitmentId)
                 .orElseThrow(() -> new EntityNotFoundException("공고를 찾을 수 없습니다."));
 
@@ -170,7 +167,7 @@ public class RecruitmentAdminService {
                         .slotDate(s.getSlotDate())
                         .capacity(s.getCapacity())
                         .isActive(true)
-                        .updatedBy(dto.getAdminId())
+                        .updatedBy(adminId)
                         .build();
                 interviewSlotRepository.save(slot);
             });
