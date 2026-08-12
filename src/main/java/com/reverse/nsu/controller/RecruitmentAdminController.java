@@ -85,7 +85,7 @@ public class RecruitmentAdminController {
         if (userId == null) return unauthorized();
         if (!roleCheckService.isAdmin(userId)) return forbidden();
 
-        Recruitment recruitment = recruitmentAdminService.createRecruitment(body);
+        Recruitment recruitment = recruitmentAdminService.createRecruitment(body, userId);
         notifyService.notifySubscribers(recruitment.getTitle());
         emailService.sendAuditLog(userId, "모집 공고 등록 - 제목: " + recruitment.getTitle());
 
@@ -110,7 +110,7 @@ public class RecruitmentAdminController {
         if (userId == null) return unauthorized();
         if (!roleCheckService.isAdmin(userId)) return forbidden();
 
-        recruitmentAdminService.updateRecruitment(id, body);
+        recruitmentAdminService.updateRecruitment(id, body, userId);
         emailService.sendAuditLog(userId, "모집 공고 수정 (ID: " + id + ")");
 
         return ResponseEntity.ok(Map.of(
@@ -203,7 +203,7 @@ public class RecruitmentAdminController {
         if (userId == null) return unauthorized();
         if (!roleCheckService.isAdmin(userId)) return forbidden();
 
-        recruitmentAdminService.updateRecruitmentPage(id, body);
+        recruitmentAdminService.updateRecruitmentPage(id, body, userId);
         emailService.sendAuditLog(userId, "모집 공고 상세 페이지 수정 (ID: " + id + ")");
 
         return ResponseEntity.ok(Map.of(
@@ -226,7 +226,7 @@ public class RecruitmentAdminController {
         if (userId == null) return unauthorized();
         if (!roleCheckService.isAdmin(userId)) return forbidden();
 
-        recruitmentAdminService.updateInterviewSlots(id, body);
+        recruitmentAdminService.updateInterviewSlots(id, body, userId);
         emailService.sendAuditLog(userId, "모집 공고 면접 슬롯 설정 (ID: " + id + ")");
 
         return ResponseEntity.ok(Map.of(

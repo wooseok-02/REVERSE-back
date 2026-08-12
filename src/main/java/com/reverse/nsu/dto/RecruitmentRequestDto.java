@@ -21,7 +21,6 @@ public class RecruitmentRequestDto {
     @Getter @Setter
     public static class PageUpdate {
         private Integer roleId;
-        private String adminId;
         private String heroYear;
         private String heroTitle;
         private String heroSubTitle;
@@ -37,7 +36,6 @@ public class RecruitmentRequestDto {
     @Getter @Setter
     public static class InterviewSlotUpdate {
         private Integer roleId;
-        private String adminId;
         private List<SlotDto> slots;
     }
 
