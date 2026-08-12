@@ -93,6 +93,9 @@ public class RecruitmentResponseDto {
         private Byte grade;
 
         private String email;
+        private String portfolioUrl;
+        private List<String> categories;
+        private Integer interviewSlotId;
         private Integer termsAgreed;
         private String status;
         private LocalDateTime createdDate;

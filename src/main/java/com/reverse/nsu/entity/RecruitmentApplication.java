@@ -43,6 +43,9 @@ public class RecruitmentApplication extends BaseTimeEntity { // BaseTimeEntity �
     @Column(name = "email", length = 100, nullable = false)
     private String email;
 
+    @Column(name = "portfolioUrl", length = 500)
+    private String portfolioUrl;
+
     @Builder.Default
     @Column(name = "termsAgreed", columnDefinition = "TINYINT(1)", nullable = false)
     private Integer termsAgreed = 0;
@@ -54,6 +57,24 @@ public class RecruitmentApplication extends BaseTimeEntity { // BaseTimeEntity �
     @OneToMany(mappedBy = "application", cascade = CascadeType.ALL, orphanRemoval = true)
     @Builder.Default
     private List<ApplicationInterviewSchedule> applicationInterviewSchedule = new ArrayList<>();
+
+    @OneToMany(mappedBy = "application", cascade = CascadeType.ALL, orphanRemoval = true)
+    @Builder.Default
+    private List<ApplicationApplyField> applyFields = new ArrayList<>();
+
+    public void addApplyField(String applyField) {
+        applyFields.add(ApplicationApplyField.builder()
+                .application(this)
+                .applyField(applyField)
+                .build());
+    }
+
+    public void addInterviewSchedule(RecruitmentInterviewSlot slot) {
+        applicationInterviewSchedule.add(ApplicationInterviewSchedule.builder()
+                .application(this)
+                .interviewSlot(slot)
+                .build());
+    }
 
     // 날짜 필드는 BaseTimeEntity에서 상속받으므로 여기서 삭제함!
 }
